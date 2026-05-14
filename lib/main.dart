@@ -35,15 +35,7 @@ class ShamisenTabApp extends StatelessWidget {
   }
 }
 
-enum EditorTool {
-  write,
-  erase,
-  suri,
-  rest,
-  repeat,
-  lyric,
-  section,
-}
+enum EditorTool { write, erase, suri, rest, repeat, lyric, section }
 
 class TabNote {
   final int stringNumber;
@@ -121,16 +113,10 @@ class SimileRepeat {
   final int measureIndex;
   final int repeatLength;
 
-  const SimileRepeat({
-    required this.measureIndex,
-    required this.repeatLength,
-  });
+  const SimileRepeat({required this.measureIndex, required this.repeatLength});
 
   Map<String, dynamic> toJson() {
-    return {
-      'measureIndex': measureIndex,
-      'repeatLength': repeatLength,
-    };
+    return {'measureIndex': measureIndex, 'repeatLength': repeatLength};
   }
 
   factory SimileRepeat.fromJson(Map<String, dynamic> json) {
@@ -145,23 +131,14 @@ class LyricEntry {
   final int slot;
   final String text;
 
-  const LyricEntry({
-    required this.slot,
-    required this.text,
-  });
+  const LyricEntry({required this.slot, required this.text});
 
   Map<String, dynamic> toJson() {
-    return {
-      'slot': slot,
-      'text': text,
-    };
+    return {'slot': slot, 'text': text};
   }
 
   factory LyricEntry.fromJson(Map<String, dynamic> json) {
-    return LyricEntry(
-      slot: json['slot'] as int,
-      text: json['text'] as String,
-    );
+    return LyricEntry(slot: json['slot'] as int, text: json['text'] as String);
   }
 }
 
@@ -169,16 +146,10 @@ class SectionLabel {
   final int measureIndex;
   final String text;
 
-  const SectionLabel({
-    required this.measureIndex,
-    required this.text,
-  });
+  const SectionLabel({required this.measureIndex, required this.text});
 
   Map<String, dynamic> toJson() {
-    return {
-      'measureIndex': measureIndex,
-      'text': text,
-    };
+    return {'measureIndex': measureIndex, 'text': text};
   }
 
   factory SectionLabel.fromJson(Map<String, dynamic> json) {
@@ -221,10 +192,7 @@ class NoteAnchor {
   final int stringNumber;
   final int slot;
 
-  const NoteAnchor({
-    required this.stringNumber,
-    required this.slot,
-  });
+  const NoteAnchor({required this.stringNumber, required this.slot});
 }
 
 class SongSnapshot {
@@ -365,26 +333,11 @@ class _EditorScreenState extends State<EditorScreen> {
     'Sansagari (三下り)',
   ];
 
-  final List<int> measureOptions = [
-    4,
-    8,
-    12,
-    16,
-    24,
-    32,
-  ];
+  final List<int> measureOptions = [4, 8, 12, 16, 24, 32];
 
-  final List<int> repeatLengthOptions = [
-    1,
-    2,
-  ];
+  final List<int> repeatLengthOptions = [1, 2];
 
-  final List<double> zoomOptions = [
-    0.75,
-    1.0,
-    1.25,
-    1.5,
-  ];
+  final List<double> zoomOptions = [0.75, 1.0, 1.25, 1.5];
 
   final List<String> techniques = [
     'None',
@@ -450,7 +403,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   String getSongTitle() {
-  final title = titleController.text.trim();
+    final title = titleController.text.trim();
 
     if (title.isEmpty) {
       return 'Untitled Shamisen Piece';
@@ -642,20 +595,11 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       if (Platform.isWindows) {
-        await Process.start(
-          'explorer.exe',
-          ['/select,${file.absolute.path}'],
-        );
+        await Process.start('explorer.exe', ['/select,${file.absolute.path}']);
       } else if (Platform.isMacOS) {
-        await Process.start(
-          'open',
-          ['-R', file.absolute.path],
-        );
+        await Process.start('open', ['-R', file.absolute.path]);
       } else if (Platform.isLinux) {
-        await Process.start(
-          'xdg-open',
-          [file.parent.absolute.path],
-        );
+        await Process.start('xdg-open', [file.parent.absolute.path]);
       } else {
         setState(() {
           statusMessage = 'Reveal file is not supported on this platform.';
@@ -699,20 +643,11 @@ class _EditorScreenState extends State<EditorScreen> {
       final folderPath = directory.absolute.path;
 
       if (Platform.isWindows) {
-        await Process.start(
-          'explorer.exe',
-          [folderPath],
-        );
+        await Process.start('explorer.exe', [folderPath]);
       } else if (Platform.isMacOS) {
-        await Process.start(
-          'open',
-          [folderPath],
-        );
+        await Process.start('open', [folderPath]);
       } else if (Platform.isLinux) {
-        await Process.start(
-          'xdg-open',
-          [folderPath],
-        );
+        await Process.start('xdg-open', [folderPath]);
       } else {
         setState(() {
           statusMessage = 'Open folder is not supported on this platform.';
@@ -747,6 +682,7 @@ class _EditorScreenState extends State<EditorScreen> {
       label: 'export',
     );
   }
+
   String createExportTimestamp() {
     final now = DateTime.now();
 
@@ -764,7 +700,7 @@ class _EditorScreenState extends State<EditorScreen> {
     return '$year-$month-${day}_$hour-$minute-$second';
   }
 
-    Future<SheetImageCapture> captureSheetAsPngBytes() async {
+  Future<SheetImageCapture> captureSheetAsPngBytes() async {
     await WidgetsBinding.instance.endOfFrame;
 
     final renderObject = sheetExportKey.currentContext?.findRenderObject();
@@ -782,13 +718,9 @@ class _EditorScreenState extends State<EditorScreen> {
       exportPixelRatio = 1.25;
     }
 
-    final image = await renderObject.toImage(
-      pixelRatio: exportPixelRatio,
-    );
+    final image = await renderObject.toImage(pixelRatio: exportPixelRatio);
 
-    final byteData = await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
     if (byteData == null) {
       throw Exception('could not create PNG data');
@@ -851,10 +783,7 @@ class _EditorScreenState extends State<EditorScreen> {
           build: (context) {
             return pw.FullPage(
               ignoreMargins: true,
-              child: pw.Image(
-                sheetImage,
-                fit: pw.BoxFit.contain,
-              ),
+              child: pw.Image(sheetImage, fit: pw.BoxFit.contain),
             );
           },
         ),
@@ -981,7 +910,9 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> importSongJsonFile() async {
-    final canContinue = await confirmUnsavedChangesBefore('importing another song file');
+    final canContinue = await confirmUnsavedChangesBefore(
+      'importing another song file',
+    );
 
     if (!canContinue) return;
     if (!mounted) return;
@@ -1033,16 +964,11 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<List<File>> getSavedSongFiles() async {
     final songDirectory = await getSongDirectory();
 
-    final files = songDirectory
-        .listSync()
-        .whereType<File>()
-        .where((file) {
-          final fileName = file.uri.pathSegments.last.toLowerCase();
+    final files = songDirectory.listSync().whereType<File>().where((file) {
+      final fileName = file.uri.pathSegments.last.toLowerCase();
 
-          return fileName.endsWith('.json') &&
-              fileName != '_autosave_backup.json';
-        })
-        .toList();
+      return fileName.endsWith('.json') && fileName != '_autosave_backup.json';
+    }).toList();
 
     files.sort((a, b) {
       final aModified = a.lastModifiedSync();
@@ -1070,7 +996,9 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> loadSong() async {
-    final canContinue = await confirmUnsavedChangesBefore('loading another song');
+    final canContinue = await confirmUnsavedChangesBefore(
+      'loading another song',
+    );
 
     if (!canContinue) return;
     if (!mounted) return;
@@ -1098,9 +1026,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   width: 460,
                   height: 380,
                   child: savedFiles.isEmpty
-                      ? const Center(
-                          child: Text('No saved songs found.'),
-                        )
+                      ? const Center(child: Text('No saved songs found.'))
                       : ListView.builder(
                           itemCount: savedFiles.length,
                           itemBuilder: (context, index) {
@@ -1133,15 +1059,17 @@ class _EditorScreenState extends State<EditorScreen> {
                                         actions: [
                                           TextButton(
                                             onPressed: () {
-                                              Navigator.of(confirmContext)
-                                                  .pop(false);
+                                              Navigator.of(
+                                                confirmContext,
+                                              ).pop(false);
                                             },
                                             child: const Text('Cancel'),
                                           ),
                                           ElevatedButton(
                                             onPressed: () {
-                                              Navigator.of(confirmContext)
-                                                  .pop(true);
+                                              Navigator.of(
+                                                confirmContext,
+                                              ).pop(true);
                                             },
                                             child: const Text('Delete'),
                                           ),
@@ -1250,7 +1178,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
       final loadedSimileRepeats = loadedSimileRepeatData
           .map((item) => SimileRepeat.fromJson(item as Map<String, dynamic>))
-          .where((repeat) => repeat.repeatLength == 1 || repeat.repeatLength == 2)
+          .where(
+            (repeat) => repeat.repeatLength == 1 || repeat.repeatLength == 2,
+          )
           .where(
             (repeat) =>
                 repeat.measureIndex >= 0 &&
@@ -1314,7 +1244,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
         statusMessage = 'Loaded "$loadedTitle".';
       });
-    } catch (error) {     
+    } catch (error) {
       setState(() {
         statusMessage = 'Load failed: $error';
       });
@@ -1370,7 +1300,9 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> newSong() async {
-    final canContinue = await confirmUnsavedChangesBefore('starting a new song');
+    final canContinue = await confirmUnsavedChangesBefore(
+      'starting a new song',
+    );
 
     if (!canContinue) return;
     if (!mounted) return;
@@ -1460,10 +1392,7 @@ class _EditorScreenState extends State<EditorScreen> {
               '- Keyboard shortcuts\n\n'
               'Alpha notice:\n'
               'This version is intended for testing. File formats, layout, and export behavior may still change.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.35,
-              ),
+              style: TextStyle(fontSize: 14, height: 1.35),
             ),
           ),
           actions: [
@@ -1497,11 +1426,9 @@ class _EditorScreenState extends State<EditorScreen> {
                 '5. Use Load to open a saved song from your local song library.\n\n'
                 'Tools\n'
                 '6. Use PNG or PDF export to share or print the current sheet.\n\n'
-                
                 'Autosave Recovery\n'
                 'The app keeps a local autosave backup while you work.\n'
                 'Use Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\n'
-                
                 'Write: Place notes or select existing notes.\n'
                 'Erase: Smart erase for notes, rests, lyrics, Suri slides, repeats, and section labels.\n'
                 'Suri: Click two notes on the same string to add or remove a slide mark.\n'
@@ -1509,7 +1436,6 @@ class _EditorScreenState extends State<EditorScreen> {
                 'Repeat: Click a measure to add or remove a simile repeat mark.\n'
                 'Lyric: Click a note/rest timing slot to add lyrics under it.\n'
                 'Section: Click a measure to add labels like Intro, Verse, or Chorus.\n\n'
-                
                 'Song Settings\n'
                 'Title: Used for the sheet title and save file name.\n'
                 'Tuning: Choose Honchoshi, Niagari, or Sansagari.\n'
@@ -1517,17 +1443,13 @@ class _EditorScreenState extends State<EditorScreen> {
                 'Measures: Control the length of the song.\n'
                 'Zoom: Adjust horizontal spacing.\n'
                 'Repeat: Choose one-measure or two-measure simile repeat.\n\n'
-                
                 'Important Notes\n'
                 'Lyrics can only be added under an existing note or rest.\n'
                 'Suri slides must connect two notes on the same string.\n'
                 'Repeat marks cannot be placed over measures that already contain notes or rests.\n'
                 'New Song resets everything.\n'
                 'Clear Song clears the notation but does not reset all song settings.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.35,
-                ),
+                style: TextStyle(fontSize: 14, height: 1.35),
               ),
             ),
           ),
@@ -1557,7 +1479,6 @@ class _EditorScreenState extends State<EditorScreen> {
               child: Text(
                 'Shamisen Tab Composer Alpha 0.1\n\n'
                 'Initial alpha version for testing the core tablature editor.\n\n'
-
                 'Added:\n'
                 '- Shamisen tab note input\n'
                 '- Three-string sheet layout\n'
@@ -1595,7 +1516,6 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Autosave backup\n'
                 '- Autosave recovery button\n'
                 '- Unsaved changes status\n'
-
                 'Known Alpha Limitations:\n'
                 '- Windows desktop is the main testing platform right now.\n'
                 '- Export layout may need improvement for long songs.\n'
@@ -1603,7 +1523,6 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Mobile layout is not ready.\n'
                 '- Save file format may change before stable release.\n'
                 '- More shamisen notation symbols still need to be added.\n\n'
-
                 'Next Planned Version: Alpha 0.2\n\n'
                 'Planned improvements:\n'
                 '- Cleaner toolbar organization\n'
@@ -1612,10 +1531,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Sample song files\n'
                 '- Better beginner instructions\n'
                 '- More testing feedback support',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.35,
-                ),
+                style: TextStyle(fontSize: 14, height: 1.35),
               ),
             ),
           ),
@@ -1761,16 +1677,19 @@ class _EditorScreenState extends State<EditorScreen> {
               'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.';
           break;
         case EditorTool.suri:
-          statusMessage = 'Suri mode: click the starting note, then ending note.';
+          statusMessage =
+              'Suri mode: click the starting note, then ending note.';
           break;
         case EditorTool.rest:
           statusMessage = 'Rest mode: click a line to place a rest.';
           break;
         case EditorTool.repeat:
-          statusMessage = 'Repeat mode: click a measure to toggle a simile mark.';
+          statusMessage =
+              'Repeat mode: click a measure to toggle a simile mark.';
           break;
         case EditorTool.lyric:
-          statusMessage = 'Lyric mode: click a note/rest timing slot to add or edit lyrics.';
+          statusMessage =
+              'Lyric mode: click a note/rest timing slot to add or edit lyrics.';
           break;
         case EditorTool.section:
           statusMessage = 'Section mode: click a measure to add/edit a label.';
@@ -1780,7 +1699,9 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> clearSong() async {
-    final canContinue = await confirmUnsavedChangesBefore('clearing the current song');
+    final canContinue = await confirmUnsavedChangesBefore(
+      'clearing the current song',
+    );
 
     if (!canContinue) return;
     if (!mounted) return;
@@ -1951,8 +1872,9 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    final existingText =
-        existingIndex >= 0 ? lyricEntries[existingIndex].text : '';
+    final existingText = existingIndex >= 0
+        ? lyricEntries[existingIndex].text
+        : '';
 
     String pendingLyricText = existingText;
 
@@ -2027,10 +1949,7 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      final newLyric = LyricEntry(
-        slot: slot,
-        text: trimmedText,
-      );
+      final newLyric = LyricEntry(slot: slot, text: trimmedText);
 
       if (existingIndex >= 0) {
         lyricEntries[existingIndex] = newLyric;
@@ -2062,8 +1981,9 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     final existingIndex = findSectionLabelIndexAtMeasure(measureIndex);
-    final existingText =
-        existingIndex >= 0 ? sectionLabels[existingIndex].text : '';
+    final existingText = existingIndex >= 0
+        ? sectionLabels[existingIndex].text
+        : '';
 
     String pendingSectionText = existingText;
 
@@ -2190,8 +2110,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     return simileRepeats.any((repeat) {
       final repeatStart = repeat.measureIndex * slotsPerMeasure;
-      final repeatEnd =
-          repeatStart + repeat.repeatLength * slotsPerMeasure;
+      final repeatEnd = repeatStart + repeat.repeatLength * slotsPerMeasure;
 
       return startSlot < repeatEnd && repeatStart < endSlot;
     });
@@ -2358,15 +2277,16 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   int findRestIndexAt(int stringNumber, int clickedSlot) {
-  return rests.indexWhere((rest) {
-    final restStart = rest.slot;
-    final restEnd = rest.slot + rest.durationSlots;
+    return rests.indexWhere((rest) {
+      final restStart = rest.slot;
+      final restEnd = rest.slot + rest.durationSlots;
 
-    return rest.stringNumber == stringNumber &&
-        clickedSlot >= restStart &&
-        clickedSlot < restEnd;
-  });
-}
+      return rest.stringNumber == stringNumber &&
+          clickedSlot >= restStart &&
+          clickedSlot < restEnd;
+    });
+  }
+
   void handleCanvasClick(Offset position) {
     final slot = getSlotFromX(position.dx);
 
@@ -2512,9 +2432,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         rests.removeAt(existingRestIndex);
 
-        lyricEntries.removeWhere(
-          (lyric) => lyric.slot == removedRest.slot,
-        );
+        lyricEntries.removeWhere((lyric) => lyric.slot == removedRest.slot);
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
@@ -2606,7 +2524,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (repeatLength == 1 && measureIndex == 0) {
       setState(() {
-        statusMessage = 'A one-measure simile repeat cannot be placed in measure 1.';
+        statusMessage =
+            'A one-measure simile repeat cannot be placed in measure 1.';
       });
       return;
     }
@@ -2653,17 +2572,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     setState(() {
       simileRepeats.add(
-        SimileRepeat(
-          measureIndex: measureIndex,
-          repeatLength: repeatLength,
-        ),
+        SimileRepeat(measureIndex: measureIndex, repeatLength: repeatLength),
       );
 
       pendingSuriStart = null;
       selectedNoteAnchor = null;
 
       if (repeatLength == 1) {
-        statusMessage = 'Added one-measure simile repeat to measure ${measureIndex + 1}.';
+        statusMessage =
+            'Added one-measure simile repeat to measure ${measureIndex + 1}.';
       } else {
         statusMessage =
             'Added two-measure simile repeat from measure ${measureIndex + 1} to ${measureIndex + 2}.';
@@ -2713,11 +2630,13 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    final startSlot =
-        start.slot < clickedAnchor.slot ? start.slot : clickedAnchor.slot;
+    final startSlot = start.slot < clickedAnchor.slot
+        ? start.slot
+        : clickedAnchor.slot;
 
-    final endSlot =
-        start.slot < clickedAnchor.slot ? clickedAnchor.slot : start.slot;
+    final endSlot = start.slot < clickedAnchor.slot
+        ? clickedAnchor.slot
+        : start.slot;
 
     final existingSlideIndex = suriSlides.indexWhere(
       (slide) =>
@@ -2791,9 +2710,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 slide.endSlot == noteToDelete.slot),
       );
 
-      lyricEntries.removeWhere(
-        (lyric) => lyric.slot == noteToDelete.slot,
-      );
+      lyricEntries.removeWhere((lyric) => lyric.slot == noteToDelete.slot);
 
       pendingSuriStart = null;
       selectedNoteAnchor = null;
@@ -2820,9 +2737,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   slide.endSlot == noteToDelete.slot),
         );
 
-        lyricEntries.removeWhere(
-          (lyric) => lyric.slot == noteToDelete.slot,
-        );
+        lyricEntries.removeWhere((lyric) => lyric.slot == noteToDelete.slot);
 
         if (pendingSuriStart != null &&
             pendingSuriStart!.stringNumber == noteToDelete.stringNumber &&
@@ -2836,7 +2751,8 @@ class _EditorScreenState extends State<EditorScreen> {
           selectedNoteAnchor = null;
         }
 
-        statusMessage = 'Deleted note, related Suri slides, and attached lyric.';
+        statusMessage =
+            'Deleted note, related Suri slides, and attached lyric.';
       });
 
       return;
@@ -2852,9 +2768,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         rests.removeAt(restIndex);
 
-        lyricEntries.removeWhere(
-          (lyric) => lyric.slot == restToDelete.slot,
-        );
+        lyricEntries.removeWhere((lyric) => lyric.slot == restToDelete.slot);
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
@@ -2961,39 +2875,30 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   DropdownMenuItem<String> buildTechniqueDropdownItem(String technique) {
-      if (technique == 'LEFT_HAND_HEADER') {
-        return const DropdownMenuItem<String>(
-          value: 'LEFT_HAND_HEADER',
-          enabled: false,
-          child: Text(
-            'Left-Hand Techniques (左手 - Hidarite)',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blue,
-            ),
-          ),
-        );
-      }
-
-      if (technique == 'RIGHT_HAND_HEADER') {
-        return const DropdownMenuItem<String>(
-          value: 'RIGHT_HAND_HEADER',
-          enabled: false,
-          child: Text(
-            'Right-Hand Techniques (右手 - Migite)',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
-            ),
-          ),
-        );
-      }
-
-      return DropdownMenuItem<String>(
-        value: technique,
-        child: Text(technique),
+    if (technique == 'LEFT_HAND_HEADER') {
+      return const DropdownMenuItem<String>(
+        value: 'LEFT_HAND_HEADER',
+        enabled: false,
+        child: Text(
+          'Left-Hand Techniques (左手 - Hidarite)',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+        ),
       );
     }
+
+    if (technique == 'RIGHT_HAND_HEADER') {
+      return const DropdownMenuItem<String>(
+        value: 'RIGHT_HAND_HEADER',
+        enabled: false,
+        child: Text(
+          'Right-Hand Techniques (右手 - Migite)',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        ),
+      );
+    }
+
+    return DropdownMenuItem<String>(value: technique, child: Text(technique));
+  }
 
   Widget buildToolbarSection({
     required String title,
@@ -3031,32 +2936,26 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Widget buildToolbarButton({
-      required IconData icon,
-      required String label,
-      required VoidCallback onPressed,
-      String? tooltip,
-    }) {
-      return Tooltip(
-        message: tooltip ?? label,
-        child: OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(
-            icon,
-            size: 18,
-          ),
-          label: Text(label),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 10,
-            ),
-            visualDensity: VisualDensity.compact,
-          ),
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip ?? label,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          visualDensity: VisualDensity.compact,
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    Widget buildSelectableToolbarButton({
+  Widget buildSelectableToolbarButton({
     required IconData icon,
     required String label,
     required bool isSelected,
@@ -3068,10 +2967,7 @@ class _EditorScreenState extends State<EditorScreen> {
       message: tooltip ?? label,
       child: OutlinedButton.icon(
         onPressed: onPressed,
-        icon: Icon(
-          icon,
-          size: 18,
-        ),
+        icon: Icon(icon, size: 18),
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: isSelected ? selectedColor : Colors.black87,
@@ -3082,10 +2978,7 @@ class _EditorScreenState extends State<EditorScreen> {
           backgroundColor: isSelected
               ? selectedColor.withAlpha(26)
               : Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           visualDensity: VisualDensity.compact,
         ),
       ),
@@ -3104,67 +2997,65 @@ class _EditorScreenState extends State<EditorScreen> {
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
-            saveSong();
-          },
-          const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
-            undoLastAction();
-          },
-          const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
-            redoLastAction();
-          },
-          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
-            newSong();
-          },
-          const SingleActivator(LogicalKeyboardKey.keyO, control: true): () {
-            loadSong();
-          },
-          const SingleActivator(LogicalKeyboardKey.keyP, control: true): () {
-            exportSheetAsPdf();
-          },
-          const SingleActivator(
-            LogicalKeyboardKey.keyP,
-            control: true,
-            shift: true,
-          ): () {
-            exportSheetAsPng();
-          },
-
-          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () {
-            selectToolFromShortcut(EditorTool.write);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () {
-            selectToolFromShortcut(EditorTool.erase);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () {
-            selectToolFromShortcut(EditorTool.suri);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () {
-            selectToolFromShortcut(EditorTool.rest);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit5, control: true): () {
-            selectToolFromShortcut(EditorTool.repeat);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit6, control: true): () {
-            selectToolFromShortcut(EditorTool.lyric);
-          },
-          const SingleActivator(LogicalKeyboardKey.digit7, control: true): () {
-            selectToolFromShortcut(EditorTool.section);
-          },
-
-          const SingleActivator(LogicalKeyboardKey.delete): () {
-            deleteSelectedNote();
-          },
-          const SingleActivator(LogicalKeyboardKey.escape): () {
-            clearCurrentSelection();
-          },
+        const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
+          saveSong();
         },
-        child: Focus(
-          autofocus: true,
-          child: Scaffold(
-          appBar: AppBar(
-            title: const Text(appFullTitle),
-          ),
+        const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
+          undoLastAction();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
+          redoLastAction();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
+          newSong();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyO, control: true): () {
+          loadSong();
+        },
+        const SingleActivator(LogicalKeyboardKey.keyP, control: true): () {
+          exportSheetAsPdf();
+        },
+        const SingleActivator(
+          LogicalKeyboardKey.keyP,
+          control: true,
+          shift: true,
+        ): () {
+          exportSheetAsPng();
+        },
+
+        const SingleActivator(LogicalKeyboardKey.digit1, control: true): () {
+          selectToolFromShortcut(EditorTool.write);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit2, control: true): () {
+          selectToolFromShortcut(EditorTool.erase);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit3, control: true): () {
+          selectToolFromShortcut(EditorTool.suri);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit4, control: true): () {
+          selectToolFromShortcut(EditorTool.rest);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit5, control: true): () {
+          selectToolFromShortcut(EditorTool.repeat);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit6, control: true): () {
+          selectToolFromShortcut(EditorTool.lyric);
+        },
+        const SingleActivator(LogicalKeyboardKey.digit7, control: true): () {
+          selectToolFromShortcut(EditorTool.section);
+        },
+
+        const SingleActivator(LogicalKeyboardKey.delete): () {
+          deleteSelectedNote();
+        },
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          clearCurrentSelection();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          appBar: AppBar(title: const Text(appFullTitle)),
           body: Column(
             children: [
               Container(
@@ -3361,8 +3252,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   selectedTabNumber = value;
                                   selectedTool = EditorTool.write;
                                   pendingSuriStart = null;
-                                  statusMessage =
-                                      'Selected tab number $value.';
+                                  statusMessage = 'Selected tab number $value.';
                                 });
                               },
                             ),
@@ -3409,8 +3299,9 @@ class _EditorScreenState extends State<EditorScreen> {
                             const Text('Technique: '),
                             DropdownButton<String>(
                               value: selectedTechnique,
-                              items:
-                                  techniques.map(buildTechniqueDropdownItem).toList(),
+                              items: techniques
+                                  .map(buildTechniqueDropdownItem)
+                                  .toList(),
                               onChanged: (value) {
                                 if (value == null) return;
                                 if (value == 'LEFT_HAND_HEADER') return;
@@ -3704,7 +3595,8 @@ class _EditorScreenState extends State<EditorScreen> {
                           child: Text(
                             statusMessage,
                             style: TextStyle(
-                              color: statusMessage.contains('Cannot') ||
+                              color:
+                                  statusMessage.contains('Cannot') ||
                                       statusMessage.contains('must') ||
                                       statusMessage.contains('No note') ||
                                       statusMessage.contains('failed') ||
@@ -3718,7 +3610,9 @@ class _EditorScreenState extends State<EditorScreen> {
                         Text(
                           hasUnsavedChanges ? 'Unsaved changes' : 'Saved',
                           style: TextStyle(
-                            color: hasUnsavedChanges ? Colors.orange : Colors.green,
+                            color: hasUnsavedChanges
+                                ? Colors.orange
+                                : Colors.green,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -3890,8 +3784,7 @@ class ShamisenPainter extends CustomPainter {
   }
 
   bool isAboveTabTechnique(String technique) {
-    return technique == 'Oshibachi (押し撥) - 押' ||
-        technique == 'Suberi (滑り) - 滑';
+    return technique == 'Oshibachi (押し撥) - 押' || technique == 'Suberi (滑り) - 滑';
   }
 
   String aboveTabKanji(String technique) {
@@ -3953,7 +3846,7 @@ class ShamisenPainter extends CustomPainter {
     drawNotes(canvas);
   }
 
- void drawTitle(Canvas canvas) {
+  void drawTitle(Canvas canvas) {
     final titlePainter = TextPainter(
       text: TextSpan(
         text: songTitle,
@@ -4141,19 +4034,12 @@ class ShamisenPainter extends CustomPainter {
     for (int i = 0; i < 3; i++) {
       final y = topMargin + i * stringSpacing;
 
-      canvas.drawLine(
-        Offset(leftMargin, y),
-        Offset(maxX, y),
-        stringPaint,
-      );
+      canvas.drawLine(Offset(leftMargin, y), Offset(maxX, y), stringPaint);
 
       final labelPainter = TextPainter(
         text: TextSpan(
           text: 'String ${i + 1}',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.black, fontSize: 14),
         ),
         textDirection: TextDirection.ltr,
       );
@@ -4176,11 +4062,7 @@ class ShamisenPainter extends CustomPainter {
           leftMargin + (note.slot + note.durationSlots - 1) * slotSpacing;
       final y = topMargin + (note.stringNumber - 1) * stringSpacing + 42;
 
-      canvas.drawLine(
-        Offset(startX, y),
-        Offset(endX, y),
-        guidePaint,
-      );
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), guidePaint);
     }
   }
 
@@ -4213,25 +4095,21 @@ class ShamisenPainter extends CustomPainter {
   }
 
   void drawPendingSuriStart(Canvas canvas) {
-      if (pendingSuriStart == null) return;
+    if (pendingSuriStart == null) return;
 
-      final anchor = pendingSuriStart!;
-      final x = leftMargin + anchor.slot * slotSpacing;
-      final y = topMargin + (anchor.stringNumber - 1) * stringSpacing;
+    final anchor = pendingSuriStart!;
+    final x = leftMargin + anchor.slot * slotSpacing;
+    final y = topMargin + (anchor.stringNumber - 1) * stringSpacing;
 
-      final highlightPaint = Paint()
-        ..color = Colors.green
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke;
+    final highlightPaint = Paint()
+      ..color = Colors.green
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
 
-      canvas.drawCircle(
-        Offset(x, y - 12),
-        18,
-        highlightPaint,
-      );
-    }
+    canvas.drawCircle(Offset(x, y - 12), 18, highlightPaint);
+  }
 
-    void drawSelectedNoteHighlight(Canvas canvas) {
+  void drawSelectedNoteHighlight(Canvas canvas) {
     if (selectedNoteAnchor == null) return;
 
     final selected = selectedNoteAnchor!;
@@ -4243,17 +4121,10 @@ class ShamisenPainter extends CustomPainter {
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
-    final rect = Rect.fromCenter(
-      center: Offset(x, y),
-      width: 48,
-      height: 58,
-    );
+    final rect = Rect.fromCenter(center: Offset(x, y), width: 48, height: 58);
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        rect,
-        const Radius.circular(8),
-      ),
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
       highlightPaint,
     );
   }
@@ -4263,8 +4134,7 @@ class ShamisenPainter extends CustomPainter {
       final repeatStartX =
           leftMargin + repeat.measureIndex * slotsPerMeasure * slotSpacing;
 
-      final repeatWidth =
-          repeat.repeatLength * slotsPerMeasure * slotSpacing;
+      final repeatWidth = repeat.repeatLength * slotsPerMeasure * slotSpacing;
 
       final repeatCenterX = repeatStartX + repeatWidth / 2;
 
@@ -4356,13 +4226,7 @@ class ShamisenPainter extends CustomPainter {
 
       lyricPainter.layout(maxWidth: 90);
 
-      lyricPainter.paint(
-        canvas,
-        Offset(
-          x - lyricPainter.width / 2,
-          lyricY,
-        ),
-      );
+      lyricPainter.paint(canvas, Offset(x - lyricPainter.width / 2, lyricY));
     }
   }
 
@@ -4375,131 +4239,118 @@ class ShamisenPainter extends CustomPainter {
       final x = leftMargin + rest.slot * slotSpacing;
       final y = topMargin + (rest.stringNumber - 1) * stringSpacing;
 
-      canvas.drawCircle(
-        Offset(x, y),
-        7,
-        restPaint,
-      );
+      canvas.drawCircle(Offset(x, y), 7, restPaint);
 
       drawRhythmDash(canvas, x, y + rhythmDashYOffset, rest.rhythm);
     }
   }
 
   void drawNotes(Canvas canvas) {
-  for (final note in notes) {
-    final x = leftMargin + note.slot * slotSpacing;
-    final y = topMargin + (note.stringNumber - 1) * stringSpacing;
+    for (final note in notes) {
+      final x = leftMargin + note.slot * slotSpacing;
+      final y = topMargin + (note.stringNumber - 1) * stringSpacing;
 
-    final normalTechnique = techniqueSymbol(note.technique);
-    final usesAboveTabTechnique = isAboveTabTechnique(note.technique);
+      final normalTechnique = techniqueSymbol(note.technique);
+      final usesAboveTabTechnique = isAboveTabTechnique(note.technique);
 
-    if (usesAboveTabTechnique) {
-      drawAboveTabTechnique(canvas, x, y, note.technique);
-    }
+      if (usesAboveTabTechnique) {
+        drawAboveTabTechnique(canvas, x, y, note.technique);
+      }
 
-    final tabPainter = TextPainter(
-      text: TextSpan(
-        text: note.tabNumber,
-        style: const TextStyle(
-          color: Colors.red,
-          fontSize: tabFontSize,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-
-    tabPainter.layout();
-
-    tabPainter.paint(
-      canvas,
-      Offset(
-        x - tabPainter.width / 2,
-        y - tabPainter.height / 2,
-      ),
-    );
-
-    drawRhythmDash(canvas, x, y + rhythmDashYOffset, note.rhythm);
-
-    if (normalTechnique.isNotEmpty && !usesAboveTabTechnique) {
-      final techniquePainter = TextPainter(
+      final tabPainter = TextPainter(
         text: TextSpan(
-          text: normalTechnique,
+          text: note.tabNumber,
           style: const TextStyle(
-            color: Colors.blue,
-            fontSize: belowTechniqueFontSize,
+            color: Colors.red,
+            fontSize: tabFontSize,
             fontWeight: FontWeight.bold,
           ),
         ),
         textDirection: TextDirection.ltr,
       );
 
-      techniquePainter.layout();
+      tabPainter.layout();
 
-      techniquePainter.paint(
+      tabPainter.paint(
         canvas,
-        Offset(
-          x - techniquePainter.width / 2,
-          y + belowTechniqueVerticalOffset,
-        ),
+        Offset(x - tabPainter.width / 2, y - tabPainter.height / 2),
       );
+
+      drawRhythmDash(canvas, x, y + rhythmDashYOffset, note.rhythm);
+
+      if (normalTechnique.isNotEmpty && !usesAboveTabTechnique) {
+        final techniquePainter = TextPainter(
+          text: TextSpan(
+            text: normalTechnique,
+            style: const TextStyle(
+              color: Colors.blue,
+              fontSize: belowTechniqueFontSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+
+        techniquePainter.layout();
+
+        techniquePainter.paint(
+          canvas,
+          Offset(
+            x - techniquePainter.width / 2,
+            y + belowTechniqueVerticalOffset,
+          ),
+        );
+      }
     }
   }
-}
 
- void drawAboveTabTechnique(
-  Canvas canvas,
-  double x,
-  double y,
-  String technique,
-) {
-  final kanji = aboveTabKanji(technique);
-  final symbol = aboveTabSymbol(technique);
+  void drawAboveTabTechnique(
+    Canvas canvas,
+    double x,
+    double y,
+    String technique,
+  ) {
+    final kanji = aboveTabKanji(technique);
+    final symbol = aboveTabSymbol(technique);
 
-  final kanjiPainter = TextPainter(
-    text: TextSpan(
-      text: kanji,
-      style: const TextStyle(
-        color: Colors.blue,
-        fontSize: aboveKanjiFontSize,
-        fontWeight: FontWeight.bold,
+    final kanjiPainter = TextPainter(
+      text: TextSpan(
+        text: kanji,
+        style: const TextStyle(
+          color: Colors.blue,
+          fontSize: aboveKanjiFontSize,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-    ),
-    textDirection: TextDirection.ltr,
-  );
+      textDirection: TextDirection.ltr,
+    );
 
-  kanjiPainter.layout();
+    kanjiPainter.layout();
 
-  kanjiPainter.paint(
-    canvas,
-    Offset(
-      x - kanjiPainter.width / 2,
-      y - aboveKanjiVerticalOffset,
-    ),
-  );
+    kanjiPainter.paint(
+      canvas,
+      Offset(x - kanjiPainter.width / 2, y - aboveKanjiVerticalOffset),
+    );
 
-  final symbolPainter = TextPainter(
-    text: TextSpan(
-      text: symbol,
-      style: const TextStyle(
-        color: Colors.blue,
-        fontSize: aboveSymbolFontSize,
-        fontWeight: FontWeight.bold,
+    final symbolPainter = TextPainter(
+      text: TextSpan(
+        text: symbol,
+        style: const TextStyle(
+          color: Colors.blue,
+          fontSize: aboveSymbolFontSize,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-    ),
-    textDirection: TextDirection.ltr,
-  );
+      textDirection: TextDirection.ltr,
+    );
 
-  symbolPainter.layout();
+    symbolPainter.layout();
 
-  symbolPainter.paint(
-    canvas,
-    Offset(
-      x - symbolPainter.width / 2,
-      y - aboveSymbolVerticalOffset,
-    ),
-  );
-}
+    symbolPainter.paint(
+      canvas,
+      Offset(x - symbolPainter.width / 2, y - aboveSymbolVerticalOffset),
+    );
+  }
 
   void drawRhythmDash(Canvas canvas, double x, double y, String rhythm) {
     final dashPaint = Paint()
@@ -4507,25 +4358,13 @@ class ShamisenPainter extends CustomPainter {
       ..strokeWidth = 2;
 
     if (rhythm == 'Eighth') {
-      canvas.drawLine(
-        Offset(x - 8, y),
-        Offset(x + 8, y),
-        dashPaint,
-      );
+      canvas.drawLine(Offset(x - 8, y), Offset(x + 8, y), dashPaint);
     }
 
     if (rhythm == 'Sixteenth') {
-      canvas.drawLine(
-        Offset(x - 8, y),
-        Offset(x + 8, y),
-        dashPaint,
-      );
+      canvas.drawLine(Offset(x - 8, y), Offset(x + 8, y), dashPaint);
 
-      canvas.drawLine(
-        Offset(x - 8, y + 5),
-        Offset(x + 8, y + 5),
-        dashPaint,
-      );
+      canvas.drawLine(Offset(x - 8, y + 5), Offset(x + 8, y + 5), dashPaint);
     }
   }
 
