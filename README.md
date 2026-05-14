@@ -35,6 +35,18 @@ This app is currently in early testing. Features, file format, layout, and expor
 
 - Windows desktop
 
+## Download and Install
+
+Windows alpha builds are provided through the GitHub Releases page.
+
+After downloading the Windows zip file, extract the full folder and run the `.exe` inside it.
+
+Do not move the `.exe` by itself. The app needs the included support files and `data` folder.
+
+For detailed instructions, see:
+
+docs/windows-installation.md
+
 ## Current Version
 
 Shamisen Tab Composer Alpha 0.1
