@@ -1347,6 +1347,91 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  void showChangelogDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Version History'),
+          content: const SizedBox(
+            width: 560,
+            height: 460,
+            child: SingleChildScrollView(
+              child: Text(
+                'Shamisen Tab Composer Alpha 0.1\n\n'
+                'Initial alpha version for testing the core tablature editor.\n\n'
+
+                'Added:\n'
+                '- Shamisen tab note input\n'
+                '- Three-string sheet layout\n'
+                '- Rhythm support: Whole, Half, Quarter, Eighth, Sixteenth\n'
+                '- Tab number selection\n'
+                '- Shamisen tuning metadata\n'
+                '- BPM metadata\n'
+                '- Measure count control\n'
+                '- Horizontal zoom control\n'
+                '- Left-hand technique markings\n'
+                '- Right-hand technique markings\n'
+                '- Oshibachi and Suberi above-note markings\n'
+                '- Suri slide markings\n'
+                '- Rest input\n'
+                '- Lyric input under notes and rests\n'
+                '- Section labels\n'
+                '- One-measure simile repeat marks\n'
+                '- Two-measure simile repeat marks\n'
+                '- Smart erase mode\n'
+                '- Selected-note editing\n'
+                '- Undo and redo\n'
+                '- Save and load local song files\n'
+                '- Delete saved songs from the Load window\n'
+                '- Manual JSON import\n'
+                '- Manual JSON export\n'
+                '- PNG export\n'
+                '- PDF export\n'
+                '- Open song library folder\n'
+                '- Open export folder\n'
+                '- Reveal last saved song file\n'
+                '- Reveal last exported file\n'
+                '- Keyboard shortcuts\n'
+                '- Help dialog\n'
+                '- About dialog\n\n'
+
+                'Known Alpha Limitations:\n'
+                '- Windows desktop is the main testing platform right now.\n'
+                '- Export layout may need improvement for long songs.\n'
+                '- PDF export currently captures the visual sheet as displayed.\n'
+                '- Mobile layout is not ready.\n'
+                '- Save file format may change before stable release.\n'
+                '- More shamisen notation symbols still need to be added.\n\n'
+
+                'Next Planned Version: Alpha 0.2\n\n'
+                'Planned improvements:\n'
+                '- Cleaner toolbar organization\n'
+                '- Better exported sheet layout\n'
+                '- More notation symbols\n'
+                '- Sample song files\n'
+                '- Better beginner instructions\n'
+                '- More testing feedback support',
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Return'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   SongSnapshot createSongSnapshot() {
     return SongSnapshot(
       title: titleController.text,
@@ -3196,6 +3281,12 @@ class _EditorScreenState extends State<EditorScreen> {
                           onPressed: showHelpDialog,
                           icon: const Icon(Icons.help_outline),
                           tooltip: 'Help / Instructions',
+                        ),
+
+                        IconButton(
+                          onPressed: showChangelogDialog,
+                          icon: const Icon(Icons.history),
+                          tooltip: 'Version history',
                         ),
 
                         IconButton(
