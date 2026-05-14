@@ -1,17 +1,53 @@
-# shamisen_tab_app
+# Shamisen Tab Composer
 
-A new Flutter project.
+Shamisen Tab Composer is a Flutter desktop app for creating, editing, saving, loading, and exporting shamisen tablature.
 
-## Getting Started
+## Status
 
-This project is a starting point for a Flutter application.
+Alpha 0.1
 
-A few resources to get you started if this is your first Flutter project:
+This app is currently in early testing. Features, file format, layout, and export behavior may still change.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Current Features
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Write shamisen tab notes
+- Add rests
+- Add Suri slide markings
+- Add lyrics under notes and rests
+- Add section labels
+- Add one-measure and two-measure simile repeat marks
+- Save and load local song files
+- Import and export JSON song files
+- Export sheets as PNG
+- Export sheets as PDF
+- Undo and redo
+- Keyboard shortcuts
+- Help dialog
+- About dialog
+- Beta testing checklist
+
+## Built With
+
+- Flutter
+- Dart
+
+## Current Platform
+
+- Windows desktop
+
+## Current Version
+
+Shamisen Tab Composer Alpha 0.1
+
+## Planned Features
+
+- Cleaner sheet layout
+- Better print/export controls
+- More shamisen technique symbols
+- Sample song templates
+- Public beta testing
+- Possible Android/iOS versions later
+
+## Alpha Notice
+
+This is an early version made for testing and feedback. Bugs, layout issues, and file format changes are expected.
