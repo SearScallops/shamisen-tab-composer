@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -301,11 +301,25 @@ class _EditorScreenState extends State<EditorScreen> {
 
   static const int maxUndoHistory = 50;
 
+  Timer? autoBackupTimer;
+  bool hasUnsavedChanges = false;
+  String? lastAutoBackupFilePath;
+
   NoteAnchor? pendingSuriStart;
   NoteAnchor? selectedNoteAnchor;
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForAutoBackupOnStartup();
+    });
+  }
+
+  @override
   void dispose() {
+    autoBackupTimer?.cancel();
     horizontalScrollController.dispose();
     titleController.dispose();
     tempoController.dispose();
@@ -486,6 +500,105 @@ class _EditorScreenState extends State<EditorScreen> {
     return songDirectory;
   }
 
+  Future<File> getAutoBackupFile() async {
+    final songDirectory = await getSongDirectory();
+
+    return File(
+      '${songDirectory.path}${Platform.pathSeparator}_autosave_backup.json',
+    );
+  }
+
+  Future<void> checkForAutoBackupOnStartup() async {
+    try {
+      final backupFile = await getAutoBackupFile();
+
+      if (!await backupFile.exists()) {
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        lastAutoBackupFilePath = backupFile.path;
+        statusMessage =
+            'Autosave backup found. Use Recover Autosave Backup if you need it.';
+      });
+    } catch (_) {
+      // Silent startup check only.
+    }
+  }
+
+  void scheduleAutoBackup() {
+    hasUnsavedChanges = true;
+
+    autoBackupTimer?.cancel();
+
+    autoBackupTimer = Timer(const Duration(seconds: 1), () {
+      writeAutoBackupNow();
+    });
+  }
+
+  Future<void> writeAutoBackupNow() async {
+    try {
+      final backupFile = await getAutoBackupFile();
+
+      final songData = buildCurrentSongData();
+
+      const encoder = JsonEncoder.withIndent('  ');
+      await backupFile.writeAsString(encoder.convert(songData));
+
+      lastAutoBackupFilePath = backupFile.path;
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        statusMessage = 'Autosave failed: $error';
+      });
+    }
+  }
+
+  Future<void> recoverAutoBackup() async {
+    try {
+      final backupFile = await getAutoBackupFile();
+
+      if (!await backupFile.exists()) {
+        setState(() {
+          statusMessage = 'No autosave backup found.';
+        });
+        return;
+      }
+
+      await loadSongFromFile(backupFile);
+
+      if (!mounted) return;
+
+      setState(() {
+        hasUnsavedChanges = true;
+        lastAutoBackupFilePath = backupFile.path;
+        statusMessage =
+            'Recovered autosave backup. Use Save to store it as a normal song.';
+      });
+    } catch (error) {
+      setState(() {
+        statusMessage = 'Autosave recovery failed: $error';
+      });
+    }
+  }
+
+  Future<void> deleteAutoBackupFileIfExists() async {
+    try {
+      final backupFile = await getAutoBackupFile();
+
+      if (await backupFile.exists()) {
+        await backupFile.delete();
+      }
+
+      lastAutoBackupFilePath = null;
+    } catch (_) {
+      // Do not block normal saving if backup cleanup fails.
+    }
+  }
+
   Future<File> getSaveFileForTitle(String title) async {
     final songDirectory = await getSongDirectory();
     final safeTitle = sanitizeFileName(title);
@@ -648,7 +761,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final minute = twoDigits(now.minute);
     final second = twoDigits(now.second);
 
-    return '${year}-${month}-${day}_${hour}-${minute}-${second}';
+    return '$year-$month-${day}_$hour-$minute-$second';
   }
 
     Future<SheetImageCapture> captureSheetAsPngBytes() async {
@@ -814,8 +927,11 @@ class _EditorScreenState extends State<EditorScreen> {
       const encoder = JsonEncoder.withIndent('  ');
       await file.writeAsString(encoder.convert(songData));
 
+      await deleteAutoBackupFileIfExists();
+
       setState(() {
         lastSavedSongFilePath = file.path;
+        hasUnsavedChanges = false;
         statusMessage = 'Saved "$songTitle": ${file.path}';
       });
     } catch (error) {
@@ -865,6 +981,11 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> importSongJsonFile() async {
+    final canContinue = await confirmUnsavedChangesBefore('importing another song file');
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
     try {
       final jsonTypeGroup = XTypeGroup(
         label: 'Shamisen song JSON',
@@ -895,7 +1016,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (!mounted) return;
 
+      scheduleAutoBackup();
+
       setState(() {
+        hasUnsavedChanges = true;
         statusMessage =
             'Imported JSON: ${importedFile.path}. Use Save to add it to your song library.';
       });
@@ -912,7 +1036,12 @@ class _EditorScreenState extends State<EditorScreen> {
     final files = songDirectory
         .listSync()
         .whereType<File>()
-        .where((file) => file.path.toLowerCase().endsWith('.json'))
+        .where((file) {
+          final fileName = file.uri.pathSegments.last.toLowerCase();
+
+          return fileName.endsWith('.json') &&
+              fileName != '_autosave_backup.json';
+        })
         .toList();
 
     files.sort((a, b) {
@@ -941,6 +1070,11 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> loadSong() async {
+    final canContinue = await confirmUnsavedChangesBefore('loading another song');
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
     try {
       List<File> savedFiles = await getSavedSongFiles();
 
@@ -1176,6 +1310,8 @@ class _EditorScreenState extends State<EditorScreen> {
         undoStack.clear();
         redoStack.clear();
 
+        hasUnsavedChanges = false;
+
         statusMessage = 'Loaded "$loadedTitle".';
       });
     } catch (error) {     
@@ -1185,14 +1321,67 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  Future<bool> confirmUnsavedChangesBefore(String actionName) async {
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Unsaved changes'),
+          content: Text(
+            'You have unsaved changes. What do you want to do before $actionName?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop('cancel');
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop('continue');
+              },
+              child: const Text('Continue Without Saving'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop('save');
+              },
+              child: const Text('Save First'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == 'save') {
+      await saveSong();
+
+      if (!mounted) return false;
+
+      return !hasUnsavedChanges;
+    }
+
+    return result == 'continue';
+  }
+
   Future<void> newSong() async {
+    final canContinue = await confirmUnsavedChangesBefore('starting a new song');
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
     final shouldCreateNew = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Start a new song?'),
           content: const Text(
-            'This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom. Unsaved changes may be lost.',
+            'This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom.',
           ),
           actions: [
             TextButton(
@@ -1241,6 +1430,7 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
 
+      hasUnsavedChanges = true;
       statusMessage = 'Started new song.';
     });
   }
@@ -1307,6 +1497,11 @@ class _EditorScreenState extends State<EditorScreen> {
                 '5. Use Load to open a saved song from your local song library.\n\n'
                 'Tools\n'
                 '6. Use PNG or PDF export to share or print the current sheet.\n\n'
+                
+                'Autosave Recovery\n'
+                'The app keeps a local autosave backup while you work.\n'
+                'Use Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\n'
+                
                 'Write: Place notes or select existing notes.\n'
                 'Erase: Smart erase for notes, rests, lyrics, Suri slides, repeats, and section labels.\n'
                 'Suri: Click two notes on the same string to add or remove a slide mark.\n'
@@ -1314,6 +1509,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 'Repeat: Click a measure to add or remove a simile repeat mark.\n'
                 'Lyric: Click a note/rest timing slot to add lyrics under it.\n'
                 'Section: Click a measure to add labels like Intro, Verse, or Chorus.\n\n'
+                
                 'Song Settings\n'
                 'Title: Used for the sheet title and save file name.\n'
                 'Tuning: Choose Honchoshi, Niagari, or Sansagari.\n'
@@ -1321,6 +1517,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 'Measures: Control the length of the song.\n'
                 'Zoom: Adjust horizontal spacing.\n'
                 'Repeat: Choose one-measure or two-measure simile repeat.\n\n'
+                
                 'Important Notes\n'
                 'Lyrics can only be added under an existing note or rest.\n'
                 'Suri slides must connect two notes on the same string.\n'
@@ -1395,6 +1592,9 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Keyboard shortcuts\n'
                 '- Help dialog\n'
                 '- About dialog\n\n'
+                '- Autosave backup\n'
+                '- Autosave recovery button\n'
+                '- Unsaved changes status\n'
 
                 'Known Alpha Limitations:\n'
                 '- Windows desktop is the main testing platform right now.\n'
@@ -1493,6 +1693,8 @@ class _EditorScreenState extends State<EditorScreen> {
     if (undoStack.length > maxUndoHistory) {
       undoStack.removeAt(0);
     }
+
+    scheduleAutoBackup();
   }
 
   void undoLastAction() {
@@ -1577,9 +1779,43 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
-  void clearSong() {
+  Future<void> clearSong() async {
+    final canContinue = await confirmUnsavedChangesBefore('clearing the current song');
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Clear current song?'),
+          content: const Text(
+            'This will remove all notes, rests, Suri slides, lyrics, repeats, and section labels. Song settings will stay the same.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Clear Song'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldClear != true) return;
+    if (!mounted) return;
+
     saveUndoSnapshot();
-    
+
     setState(() {
       notes.clear();
       rests.clear();
@@ -1587,8 +1823,11 @@ class _EditorScreenState extends State<EditorScreen> {
       simileRepeats.clear();
       lyricEntries.clear();
       sectionLabels.clear();
+
       pendingSuriStart = null;
       selectedNoteAnchor = null;
+
+      hasUnsavedChanges = true;
       statusMessage = 'Cleared song.';
     });
   }
@@ -2791,6 +3030,68 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Widget buildToolbarButton({
+      required IconData icon,
+      required String label,
+      required VoidCallback onPressed,
+      String? tooltip,
+    }) {
+      return Tooltip(
+        message: tooltip ?? label,
+        child: OutlinedButton.icon(
+          onPressed: onPressed,
+          icon: Icon(
+            icon,
+            size: 18,
+          ),
+          label: Text(label),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 10,
+            ),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      );
+    }
+
+    Widget buildSelectableToolbarButton({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required Color selectedColor,
+    required VoidCallback onPressed,
+    String? tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip ?? label,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 18,
+        ),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: isSelected ? selectedColor : Colors.black87,
+          side: BorderSide(
+            color: isSelected ? selectedColor : Colors.grey.shade400,
+            width: isSelected ? 2 : 1,
+          ),
+          backgroundColor: isSelected
+              ? selectedColor.withAlpha(26)
+              : Colors.white,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 10,
+          ),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isRestMode = selectedTool == EditorTool.rest;
@@ -2888,6 +3189,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               border: OutlineInputBorder(),
                             ),
                             onChanged: (_) {
+                              scheduleAutoBackup();
+
                               setState(() {
                                 statusMessage = 'Updated song title.';
                               });
@@ -2910,6 +3213,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               onChanged: (value) {
                                 if (value == null) return;
 
+                                scheduleAutoBackup();
+
                                 setState(() {
                                   selectedTuning = value;
                                   statusMessage = 'Selected tuning: $value.';
@@ -2930,6 +3235,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               border: OutlineInputBorder(),
                             ),
                             onChanged: (value) {
+                              scheduleAutoBackup();
+
                               setState(() {
                                 final parsedTempo = int.tryParse(value.trim());
 
@@ -2959,6 +3266,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               }).toList(),
                               onChanged: (value) {
                                 if (value == null) return;
+
+                                saveUndoSnapshot();
 
                                 setState(() {
                                   selectedTotalMeasures = value;
@@ -3008,6 +3317,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               }).toList(),
                               onChanged: (value) {
                                 if (value == null) return;
+
+                                scheduleAutoBackup();
 
                                 setState(() {
                                   selectedZoom = value;
@@ -3153,230 +3464,234 @@ class _EditorScreenState extends State<EditorScreen> {
                     ),
 
                     buildToolbarSection(
-                      title: 'Tools',
+                      title: 'Notation Tools',
                       children: [
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.edit,
+                          label: 'Write',
+                          isSelected: isWriteMode,
+                          selectedColor: Colors.blue,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.write;
-                              pendingSuriStart = null;
-                              statusMessage = 'Write mode.';
-                            });
+                            selectToolFromShortcut(EditorTool.write);
                           },
-                          icon: Icon(
-                            Icons.edit,
-                            color: isWriteMode ? Colors.blue : Colors.black,
-                          ),
-                          tooltip: 'Write note',
+                          tooltip: 'Write note (Ctrl + 1)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.delete,
+                          label: 'Erase',
+                          isSelected: isEraseMode,
+                          selectedColor: Colors.red,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.erase;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.';
-                            });
+                            selectToolFromShortcut(EditorTool.erase);
                           },
-                          icon: Icon(
-                            Icons.delete,
-                            color: isEraseMode ? Colors.red : Colors.black,
-                          ),
-                          tooltip: 'Smart erase',
+                          tooltip: 'Smart erase (Ctrl + 2)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.timeline,
+                          label: 'Suri',
+                          isSelected: isSuriMode,
+                          selectedColor: Colors.green,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.suri;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Suri mode: click the starting note, then ending note.';
-                            });
+                            selectToolFromShortcut(EditorTool.suri);
                           },
-                          icon: Icon(
-                            Icons.timeline,
-                            color: isSuriMode ? Colors.green : Colors.black,
-                          ),
-                          tooltip: 'Suri slide mode',
+                          tooltip: 'Suri slide mode (Ctrl + 3)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.fiber_manual_record,
+                          label: 'Rest',
+                          isSelected: isRestMode,
+                          selectedColor: Colors.purple,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.rest;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Rest mode: click a line to place a rest.';
-                            });
+                            selectToolFromShortcut(EditorTool.rest);
                           },
-                          icon: Icon(
-                            Icons.fiber_manual_record,
-                            color: isRestMode ? Colors.purple : Colors.black,
-                          ),
-                          tooltip: 'Rest mode',
+                          tooltip: 'Rest mode (Ctrl + 4)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.repeat,
+                          label: 'Repeat',
+                          isSelected: isRepeatMode,
+                          selectedColor: Colors.brown,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.repeat;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Repeat mode: click a measure to toggle a simile mark.';
-                            });
+                            selectToolFromShortcut(EditorTool.repeat);
                           },
-                          icon: Icon(
-                            Icons.repeat,
-                            color: isRepeatMode ? Colors.brown : Colors.black,
-                          ),
-                          tooltip: 'Simile repeat mode',
+                          tooltip: 'Simile repeat mode (Ctrl + 5)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.text_fields,
+                          label: 'Lyric',
+                          isSelected: isLyricMode,
+                          selectedColor: Colors.teal,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.lyric;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Lyric mode: click a note/rest timing slot to add or edit lyrics.';
-                            });
+                            selectToolFromShortcut(EditorTool.lyric);
                           },
-                          icon: Icon(
-                            Icons.text_fields,
-                            color: isLyricMode ? Colors.teal : Colors.black,
-                          ),
-                          tooltip: 'Lyric mode',
+                          tooltip: 'Lyric mode (Ctrl + 6)',
                         ),
 
-                        IconButton(
+                        buildSelectableToolbarButton(
+                          icon: Icons.label,
+                          label: 'Section',
+                          isSelected: isSectionMode,
+                          selectedColor: Colors.indigo,
                           onPressed: () {
-                            setState(() {
-                              selectedTool = EditorTool.section;
-                              pendingSuriStart = null;
-                              selectedNoteAnchor = null;
-                              statusMessage =
-                                  'Section mode: click a measure to add/edit a label.';
-                            });
+                            selectToolFromShortcut(EditorTool.section);
                           },
-                          icon: Icon(
-                            Icons.label,
-                            color: isSectionMode ? Colors.indigo : Colors.black,
-                          ),
-                          tooltip: 'Section label mode',
+                          tooltip: 'Section label mode (Ctrl + 7)',
                         ),
                       ],
                     ),
 
                     buildToolbarSection(
-                      title: 'File',
+                      title: 'Song',
                       children: [
-                        IconButton(
-                          onPressed: showHelpDialog,
-                          icon: const Icon(Icons.help_outline),
-                          tooltip: 'Help / Instructions',
-                        ),
-
-                        IconButton(
-                          onPressed: showChangelogDialog,
-                          icon: const Icon(Icons.history),
-                          tooltip: 'Version history',
-                        ),
-
-                        IconButton(
-                          onPressed: showAboutAppDialog,
-                          icon: const Icon(Icons.info_outline),
-                          tooltip: 'About app',
-                        ),
-
-                        IconButton(
+                        buildToolbarButton(
+                          icon: Icons.note_add,
+                          label: 'New',
                           onPressed: newSong,
-                          icon: const Icon(Icons.note_add),
                           tooltip: 'New song',
                         ),
 
-                        IconButton(
-                          onPressed: undoLastAction,
-                          icon: const Icon(Icons.undo),
-                          tooltip: 'Undo last action',
-                        ),
-
-                        IconButton(
-                          onPressed: redoLastAction,
-                          icon: const Icon(Icons.redo),
-                          tooltip: 'Redo last action',
-                        ),
-
-                        IconButton(
+                        buildToolbarButton(
+                          icon: Icons.save,
+                          label: 'Save',
                           onPressed: saveSong,
-                          icon: const Icon(Icons.save),
                           tooltip: 'Save song',
                         ),
 
-                        IconButton(
-                          onPressed: exportSongJsonFile,
-                          icon: const Icon(Icons.upload_file),
-                          tooltip: 'Export song JSON',
-                        ),
-
-                        IconButton(
-                          onPressed: importSongJsonFile,
-                          icon: const Icon(Icons.download),
-                          tooltip: 'Import song JSON',
-                        ),
-
-                        IconButton(
-                          onPressed: revealLastSavedSongFile,
-                          icon: const Icon(Icons.manage_search),
-                          tooltip: 'Show last saved song file',
-                        ),
-
-                        IconButton(
-                          onPressed: exportSheetAsPng,
-                          icon: const Icon(Icons.image),
-                          tooltip: 'Export sheet as PNG',
-                        ),
-
-                        IconButton(
-                          onPressed: exportSheetAsPdf,
-                          icon: const Icon(Icons.picture_as_pdf),
-                          tooltip: 'Export sheet as PDF',
-                        ),
-
-                        IconButton(
-                          onPressed: revealLastExportedFile,
-                          icon: const Icon(Icons.find_in_page),
-                          tooltip: 'Show last exported file',
-                        ),
-
-                        IconButton(
-                          onPressed: openExportFolder,
-                          icon: const Icon(Icons.folder),
-                          tooltip: 'Open export folder',
-                        ),
-
-                        IconButton(
+                        buildToolbarButton(
+                          icon: Icons.folder_open,
+                          label: 'Load',
                           onPressed: loadSong,
-                          icon: const Icon(Icons.folder_open),
                           tooltip: 'Load song',
                         ),
 
-                        IconButton(
+                        buildToolbarButton(
+                          icon: Icons.restore_page,
+                          label: 'Recover',
+                          onPressed: recoverAutoBackup,
+                          tooltip: 'Recover autosave backup',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.delete_sweep,
+                          label: 'Clear',
+                          onPressed: clearSong,
+                          tooltip: 'Clear current song notation',
+                        ),
+                      ],
+                    ),
+
+                    buildToolbarSection(
+                      title: 'Edit',
+                      children: [
+                        buildToolbarButton(
+                          icon: Icons.undo,
+                          label: 'Undo',
+                          onPressed: undoLastAction,
+                          tooltip: 'Undo last action',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.redo,
+                          label: 'Redo',
+                          onPressed: redoLastAction,
+                          tooltip: 'Redo last action',
+                        ),
+                      ],
+                    ),
+
+                    buildToolbarSection(
+                      title: 'Import / Export',
+                      children: [
+                        buildToolbarButton(
+                          icon: Icons.upload_file,
+                          label: 'Export JSON',
+                          onPressed: exportSongJsonFile,
+                          tooltip: 'Export song JSON',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.download,
+                          label: 'Import JSON',
+                          onPressed: importSongJsonFile,
+                          tooltip: 'Import song JSON',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.image,
+                          label: 'PNG',
+                          onPressed: exportSheetAsPng,
+                          tooltip: 'Export sheet as PNG',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.picture_as_pdf,
+                          label: 'PDF',
+                          onPressed: exportSheetAsPdf,
+                          tooltip: 'Export sheet as PDF',
+                        ),
+                      ],
+                    ),
+
+                    buildToolbarSection(
+                      title: 'Folders',
+                      children: [
+                        buildToolbarButton(
+                          icon: Icons.library_music,
+                          label: 'Songs',
                           onPressed: openSongFolder,
-                          icon: const Icon(Icons.library_music),
                           tooltip: 'Open song library folder',
                         ),
 
-                        IconButton(
-                          onPressed: clearSong,
-                          icon: const Icon(Icons.delete_sweep),
-                          tooltip: 'Clear song',
+                        buildToolbarButton(
+                          icon: Icons.folder,
+                          label: 'Exports',
+                          onPressed: openExportFolder,
+                          tooltip: 'Open export folder',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.manage_search,
+                          label: 'Last Save',
+                          onPressed: revealLastSavedSongFile,
+                          tooltip: 'Show last saved song file',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.find_in_page,
+                          label: 'Last Export',
+                          onPressed: revealLastExportedFile,
+                          tooltip: 'Show last exported file',
+                        ),
+                      ],
+                    ),
+
+                    buildToolbarSection(
+                      title: 'Help',
+                      children: [
+                        buildToolbarButton(
+                          icon: Icons.help_outline,
+                          label: 'Help',
+                          onPressed: showHelpDialog,
+                          tooltip: 'Help / Instructions',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.history,
+                          label: 'Changes',
+                          onPressed: showChangelogDialog,
+                          tooltip: 'Version history',
+                        ),
+
+                        buildToolbarButton(
+                          icon: Icons.info_outline,
+                          label: 'About',
+                          onPressed: showAboutAppDialog,
+                          tooltip: 'About app',
                         ),
                       ],
                     ),
@@ -3398,6 +3713,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                   : Colors.black87,
                               fontWeight: FontWeight.w500,
                             ),
+                          ),
+                        ),
+                        Text(
+                          hasUnsavedChanges ? 'Unsaved changes' : 'Saved',
+                          style: TextStyle(
+                            color: hasUnsavedChanges ? Colors.orange : Colors.green,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
