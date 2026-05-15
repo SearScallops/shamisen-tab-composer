@@ -15,8 +15,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 const String appName = 'Shamisen Tab Composer';
-const String appVersion = 'Alpha 0.1';
-const String appFullTitle = 'Shamisen Tab Composer Alpha 0.1';
+const String appVersion = 'Beta 0.2.0';
+const String appFullTitle = 'Shamisen Tab Composer Beta 0.2.0';
+
+const int currentSongFileVersion = 1;
 
 void main() {
   runApp(const ShamisenTabApp());
@@ -373,6 +375,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   String? lastExportedFilePath;
   String? lastSavedSongFilePath;
+  String? currentSongLibraryFilePath;
 
   static const double leftMargin = 80;
   static const double topMargin = 280;
@@ -511,15 +514,57 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> recoverAutoBackup() async {
+    final canContinue = await confirmUnsavedChangesBefore(
+      'recovering the autosave backup',
+    );
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
     try {
       final backupFile = await getAutoBackupFile();
 
+      if (!mounted) return;
+
       if (!await backupFile.exists()) {
+        if (!mounted) return;
+
         setState(() {
           statusMessage = 'No autosave backup found.';
         });
         return;
       }
+
+      if (!mounted) return;
+
+      final shouldRecover = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Recover autosave backup?'),
+            content: const Text(
+              'This will replace the current sheet with the latest autosave backup. Use this only if you want to restore recent unsaved work.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+                child: const Text('Return'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(true);
+                },
+                child: const Text('Recover Backup'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldRecover != true) return;
+      if (!mounted) return;
 
       await loadSongFromFile(backupFile);
 
@@ -532,6 +577,8 @@ class _EditorScreenState extends State<EditorScreen> {
             'Recovered autosave backup. Use Save to store it as a normal song.';
       });
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         statusMessage = 'Autosave recovery failed: $error';
       });
@@ -733,6 +780,89 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Future<void> showExportCompleteDialog({
+    required File exportFile,
+    required String exportType,
+  }) async {
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('$exportType export complete'),
+          content: SizedBox(
+            width: 520,
+            child: SelectableText(
+              'Saved to:\n${exportFile.path}',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Return'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+
+                await revealFileInFileExplorer(
+                  filePath: exportFile.path,
+                  label: exportType.toLowerCase(),
+                );
+              },
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Open File Location'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showSaveAsCompleteDialog({
+    required File savedFile,
+  }) async {
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Save As complete'),
+          content: SizedBox(
+            width: 520,
+            child: SelectableText(
+              'Saved to:\n${savedFile.path}',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Return'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+
+                await revealFileInFileExplorer(
+                  filePath: savedFile.path,
+                  label: 'saved song copy',
+                );
+              },
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Open File Location'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> exportSheetAsPng() async {
     try {
       setState(() {
@@ -755,6 +885,11 @@ class _EditorScreenState extends State<EditorScreen> {
         lastExportedFilePath = exportFile.path;
         statusMessage = 'Exported PNG: ${exportFile.path}';
       });
+
+      await showExportCompleteDialog(
+        exportFile: exportFile,
+        exportType: 'PNG',
+      );
     } catch (error) {
       setState(() {
         statusMessage = 'Export failed: $error';
@@ -803,11 +938,39 @@ class _EditorScreenState extends State<EditorScreen> {
         lastExportedFilePath = exportFile.path;
         statusMessage = 'Exported PDF: ${exportFile.path}';
       });
+
+      await showExportCompleteDialog(
+        exportFile: exportFile,
+        exportType: 'PDF',
+      );
     } catch (error) {
       setState(() {
         statusMessage = 'PDF export failed: $error';
       });
     }
+  }
+
+  String displayNameFromPath(String filePath) {
+    final fileName = filePath.split(Platform.pathSeparator).last;
+
+    if (fileName.toLowerCase().endsWith('.json')) {
+      return fileName.substring(0, fileName.length - 5);
+    }
+
+    return fileName;
+  }
+
+  String getCurrentFileStateText() {
+    if (currentSongLibraryFilePath != null) {
+      final displayName = displayNameFromPath(currentSongLibraryFilePath!);
+      return 'Library file: $displayName';
+    }
+
+    if (hasUnsavedChanges) {
+      return 'Not saved to library';
+    }
+
+    return 'No library file selected';
   }
 
   String displayNameFromFile(File file) {
@@ -832,6 +995,9 @@ class _EditorScreenState extends State<EditorScreen> {
     final songTitle = getSongTitle();
 
     return {
+      'fileFormatVersion': currentSongFileVersion,
+      'createdWithApp': appName,
+      'appVersion': appVersion,
       'title': songTitle,
       'tuning': selectedTuning,
       'tempoBpm': getTempoBpm(),
@@ -846,10 +1012,70 @@ class _EditorScreenState extends State<EditorScreen> {
     };
   }
 
+  Future<bool> confirmOverwriteSongFile({
+    required File file,
+    required String songTitle,
+  }) async {
+    if (!await file.exists()) {
+      return true;
+    }
+
+    if (currentSongLibraryFilePath == file.path) {
+      return true;
+    }
+
+    if (!mounted) return false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Overwrite saved song?'),
+          content: Text(
+            'A saved song named "$songTitle" already exists.\n\n'
+            'Do you want to replace it?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Return'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Overwrite'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
   Future<void> saveSong() async {
     try {
       final songTitle = getSongTitle();
       final file = await getSaveFileForTitle(songTitle);
+
+      if (!mounted) return;
+
+      final canOverwrite = await confirmOverwriteSongFile(
+        file: file,
+        songTitle: songTitle,
+      );
+
+      if (!canOverwrite) {
+        if (!mounted) return;
+
+        setState(() {
+          statusMessage = 'Save cancelled to avoid overwriting "$songTitle".';
+        });
+        return;
+      }
 
       final songData = buildCurrentSongData();
 
@@ -858,12 +1084,17 @@ class _EditorScreenState extends State<EditorScreen> {
 
       await deleteAutoBackupFileIfExists();
 
+      if (!mounted) return;
+
       setState(() {
         lastSavedSongFilePath = file.path;
+        currentSongLibraryFilePath = file.path;
         hasUnsavedChanges = false;
         statusMessage = 'Saved "$songTitle": ${file.path}';
       });
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         statusMessage = 'Save failed: $error';
       });
@@ -886,7 +1117,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (saveLocation == null) {
         setState(() {
-          statusMessage = 'JSON export cancelled.';
+        statusMessage = 'Save As cancelled.';
         });
         return;
       }
@@ -900,11 +1131,14 @@ class _EditorScreenState extends State<EditorScreen> {
       await exportFile.writeAsString(encoder.convert(songData));
 
       setState(() {
-        statusMessage = 'Exported JSON: $exportPath';
+        lastSavedSongFilePath = exportFile.path;
+        statusMessage = 'Saved song copy: $exportPath';
       });
+
+      await showSaveAsCompleteDialog(savedFile: exportFile);
     } catch (error) {
       setState(() {
-        statusMessage = 'JSON export failed: $error';
+        statusMessage = 'Save As failed: $error';
       });
     }
   }
@@ -929,7 +1163,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (selectedFile == null) {
         setState(() {
-          statusMessage = 'JSON import cancelled.';
+          statusMessage = 'Open File cancelled.';
         });
         return;
       }
@@ -952,11 +1186,11 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         hasUnsavedChanges = true;
         statusMessage =
-            'Imported JSON: ${importedFile.path}. Use Save to add it to your song library.';
+            'Opened song file: ${importedFile.path}. Use Save to add it to your song library.';
       });
     } catch (error) {
       setState(() {
-        statusMessage = 'JSON import failed: $error';
+        statusMessage = 'Open File failed: $error';
       });
     }
   }
@@ -979,14 +1213,30 @@ class _EditorScreenState extends State<EditorScreen> {
     return files;
   }
 
+  bool isCurrentLibrarySongFile(File file) {
+    return currentSongLibraryFilePath != null &&
+        currentSongLibraryFilePath == file.path;
+  }
+
   Future<void> deleteSavedSongFile(File file) async {
     try {
+      final deletedCurrentSong = isCurrentLibrarySongFile(file);
+      final deletedSongName = displayNameFromFile(file);
+
       if (await file.exists()) {
         await file.delete();
       }
 
       setState(() {
-        statusMessage = 'Deleted saved song "${displayNameFromFile(file)}".';
+        if (deletedCurrentSong) {
+          currentSongLibraryFilePath = null;
+          lastSavedSongFilePath = null;
+          hasUnsavedChanges = true;
+          statusMessage =
+              'Deleted "$deletedSongName". The current sheet is still open, but it is no longer saved.';
+        } else {
+          statusMessage = 'Deleted saved song "$deletedSongName".';
+        }
       });
     } catch (error) {
       setState(() {
@@ -1054,7 +1304,9 @@ class _EditorScreenState extends State<EditorScreen> {
                                       return AlertDialog(
                                         title: const Text('Delete saved song?'),
                                         content: Text(
-                                          'Delete "$displayName"? This cannot be undone.',
+                                          isCurrentLibrarySongFile(file)
+                                              ? 'Delete "$displayName"? This is the song currently open in the editor.\n\nThe sheet will stay open, but it will become unsaved.'
+                                              : 'Delete "$displayName"? This cannot be undone.',
                                         ),
                                         actions: [
                                           TextButton(
@@ -1110,7 +1362,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (selectedFile == null) return;
 
-      await loadSongFromFile(selectedFile);
+      await loadSongFromFile(
+        selectedFile,
+        isLibraryFile: true,
+      );
     } catch (error) {
       setState(() {
         statusMessage = 'Load failed: $error';
@@ -1118,7 +1373,10 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  Future<void> loadSongFromFile(File file) async {
+  Future<void> loadSongFromFile(
+    File file, {
+    bool isLibraryFile = false,
+  }) async {
     try {
       if (!await file.exists()) {
         setState(() {
@@ -1127,10 +1385,27 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      final contents = await file.readAsString();
-      final data = jsonDecode(contents) as Map<String, dynamic>;
+    final contents = await file.readAsString();
+    final data = jsonDecode(contents) as Map<String, dynamic>;
 
-      final loadedNotes = (data['notes'] as List<dynamic>? ?? [])
+    final fileFormatVersionData = data['fileFormatVersion'];
+    int fileFormatVersion = 1;
+
+    if (fileFormatVersionData is int) {
+      fileFormatVersion = fileFormatVersionData;
+    } else if (fileFormatVersionData is String) {
+      fileFormatVersion = int.tryParse(fileFormatVersionData) ?? 1;
+    }
+
+    if (fileFormatVersion > currentSongFileVersion) {
+      setState(() {
+        statusMessage =
+            'Load failed: this song file was created with a newer file format.';
+      });
+      return;
+    }
+
+    final loadedNotes = (data['notes'] as List<dynamic>? ?? [])
           .map((item) => TabNote.fromJson(item as Map<String, dynamic>))
           .toList();
 
@@ -1241,6 +1516,13 @@ class _EditorScreenState extends State<EditorScreen> {
         redoStack.clear();
 
         hasUnsavedChanges = false;
+
+        if (isLibraryFile) {
+          currentSongLibraryFilePath = file.path;
+          lastSavedSongFilePath = file.path;
+        } else {
+          currentSongLibraryFilePath = null;
+        }
 
         statusMessage = 'Loaded "$loadedTitle".';
       });
@@ -1362,6 +1644,10 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
 
+      currentSongLibraryFilePath = null;
+      lastSavedSongFilePath = null;
+      lastExportedFilePath = null;
+
       hasUnsavedChanges = true;
       statusMessage = 'Started new song.';
     });
@@ -1376,9 +1662,9 @@ class _EditorScreenState extends State<EditorScreen> {
           content: const SizedBox(
             width: 460,
             child: Text(
-              'Shamisen Tab Composer Alpha 0.1\n\n'
+              'Shamisen Tab Composer Beta 0.2.0\n\n'
               'A desktop shamisen tablature editor for creating, saving, loading, and exporting shamisen tab sheets.\n\n'
-              'Current alpha features:\n'
+              'Current beta features:\n'
               '- Note input\n'
               '- Rests\n'
               '- Suri slide markings\n'
@@ -1386,12 +1672,13 @@ class _EditorScreenState extends State<EditorScreen> {
               '- Section labels\n'
               '- Simile repeat marks\n'
               '- Save/load song library\n'
-              '- Manual JSON import/export\n'
+              '- Save As and Open File support\n'
               '- PNG/PDF export\n'
               '- Undo/Redo\n'
-              '- Keyboard shortcuts\n\n'
-              'Alpha notice:\n'
-              'This version is intended for testing. File formats, layout, and export behavior may still change.',
+              '- Keyboard shortcuts\n'
+              '- Autosave backup and recovery\n\n'
+              'Beta notice:\n'
+              'This version is ready for public testing. File formats, layout, and export behavior may still change before the stable 1.0 release.',
               style: TextStyle(fontSize: 14, height: 1.35),
             ),
           ),
@@ -1422,10 +1709,12 @@ class _EditorScreenState extends State<EditorScreen> {
                 '1. Choose a tab number, rhythm, and technique.\n'
                 '2. Click directly on a string line to place the tab number.\n'
                 '3. Click an existing note in Write mode to select and edit it.\n'
-                '4. Use Save to store the song using the current title.\n'
-                '5. Use Load to open a saved song from your local song library.\n\n'
+                '4. Use Save to store the song in your local song library.\n'
+                '5. Use Load to open a saved song from your local song library.\n'
+                '6. Use Save As to save a song file anywhere on your computer.\n'
+                '7. Use Open File to open a song file from anywhere on your computer.\n\n'
                 'Tools\n'
-                '6. Use PNG or PDF export to share or print the current sheet.\n\n'
+                '8. Use PNG or PDF export to share or print the current sheet.\n\n'
                 'Autosave Recovery\n'
                 'The app keeps a local autosave backup while you work.\n'
                 'Use Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\n'
@@ -1477,9 +1766,9 @@ class _EditorScreenState extends State<EditorScreen> {
             height: 460,
             child: SingleChildScrollView(
               child: Text(
-                'Shamisen Tab Composer Alpha 0.1\n\n'
-                'Initial alpha version for testing the core tablature editor.\n\n'
-                'Added:\n'
+                'Shamisen Tab Composer Beta 0.2.0\n\n'
+                'First public beta release candidate for testing the core tablature editor.\n\n'
+                'Included features:\n'
                 '- Shamisen tab note input\n'
                 '- Three-string sheet layout\n'
                 '- Rhythm support: Whole, Half, Quarter, Eighth, Sixteenth\n'
@@ -1502,8 +1791,8 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Undo and redo\n'
                 '- Save and load local song files\n'
                 '- Delete saved songs from the Load window\n'
-                '- Manual JSON import\n'
-                '- Manual JSON export\n'
+                '- Save As song file support\n'
+                '- Open File song file support\n'
                 '- PNG export\n'
                 '- PDF export\n'
                 '- Open song library folder\n'
@@ -1516,14 +1805,14 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Autosave backup\n'
                 '- Autosave recovery button\n'
                 '- Unsaved changes status\n'
-                'Known Alpha Limitations:\n'
+                'Known Beta Limitations:\n'
                 '- Windows desktop is the main testing platform right now.\n'
                 '- Export layout may need improvement for long songs.\n'
                 '- PDF export currently captures the visual sheet as displayed.\n'
                 '- Mobile layout is not ready.\n'
                 '- Save file format may change before stable release.\n'
                 '- More shamisen notation symbols still need to be added.\n\n'
-                'Next Planned Version: Alpha 0.2\n\n'
+                'Next Planned Version: Beta 0.3\n\n'
                 'Planned improvements:\n'
                 '- Cleaner toolbar organization\n'
                 '- Better exported sheet layout\n'
@@ -1626,10 +1915,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     redoStack.add(currentSnapshot);
 
+    autoBackupTimer?.cancel();
+
     setState(() {
       restoreSongSnapshot(previousSnapshot);
+      hasUnsavedChanges = true;
       statusMessage = 'Undid last action.';
     });
+
+    scheduleAutoBackup();
   }
 
   void redoLastAction() {
@@ -1645,10 +1939,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     undoStack.add(currentSnapshot);
 
+    autoBackupTimer?.cancel();
+
     setState(() {
       restoreSongSnapshot(nextSnapshot);
+      hasUnsavedChanges = true;
       statusMessage = 'Redid last action.';
     });
+
+    scheduleAutoBackup();
   }
 
   void clearCurrentSelection() {
@@ -3436,97 +3735,97 @@ class _EditorScreenState extends State<EditorScreen> {
                       ],
                     ),
 
-                    buildToolbarSection(
-                      title: 'Song',
-                      children: [
-                        buildToolbarButton(
-                          icon: Icons.note_add,
-                          label: 'New',
-                          onPressed: newSong,
-                          tooltip: 'New song',
+                        buildToolbarSection(
+                          title: 'File',
+                          children: [
+                            buildToolbarButton(
+                              icon: Icons.note_add,
+                              label: 'New',
+                              onPressed: newSong,
+                              tooltip: 'Start a new song',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.save,
+                              label: 'Save',
+                              onPressed: saveSong,
+                              tooltip: 'Save song to the local song library',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.folder_open,
+                              label: 'Load',
+                              onPressed: loadSong,
+                              tooltip: 'Load song from the local song library',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.save_as,
+                              label: 'Save As',
+                              onPressed: exportSongJsonFile,
+                              tooltip: 'Save a copy of this song file anywhere on your computer',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.file_open,
+                              label: 'Open File',
+                              onPressed: importSongJsonFile,
+                              tooltip: 'Open a song file from anywhere on your computer',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.restore_page,
+                              label: 'Recover',
+                              onPressed: recoverAutoBackup,
+                              tooltip: 'Recover autosave backup',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.delete_sweep,
+                              label: 'Clear',
+                              onPressed: clearSong,
+                              tooltip: 'Clear current song notation',
+                            ),
+                          ],
                         ),
 
-                        buildToolbarButton(
-                          icon: Icons.save,
-                          label: 'Save',
-                          onPressed: saveSong,
-                          tooltip: 'Save song',
+                        buildToolbarSection(
+                          title: 'Edit',
+                          children: [
+                            buildToolbarButton(
+                              icon: Icons.undo,
+                              label: 'Undo',
+                              onPressed: undoLastAction,
+                              tooltip: 'Undo last action',
+                            ),
+
+                            buildToolbarButton(
+                              icon: Icons.redo,
+                              label: 'Redo',
+                              onPressed: redoLastAction,
+                              tooltip: 'Redo last action',
+                            ),
+                          ],
                         ),
 
-                        buildToolbarButton(
-                          icon: Icons.folder_open,
-                          label: 'Load',
-                          onPressed: loadSong,
-                          tooltip: 'Load song',
-                        ),
+                        buildToolbarSection(
+                          title: 'Export',
+                          children: [
+                            buildToolbarButton(
+                              icon: Icons.image,
+                              label: 'PNG',
+                              onPressed: exportSheetAsPng,
+                              tooltip: 'Export sheet as PNG image',
+                            ),
 
-                        buildToolbarButton(
-                          icon: Icons.restore_page,
-                          label: 'Recover',
-                          onPressed: recoverAutoBackup,
-                          tooltip: 'Recover autosave backup',
+                            buildToolbarButton(
+                              icon: Icons.picture_as_pdf,
+                              label: 'PDF',
+                              onPressed: exportSheetAsPdf,
+                              tooltip: 'Export sheet as PDF document',
+                            ),
+                          ],
                         ),
-
-                        buildToolbarButton(
-                          icon: Icons.delete_sweep,
-                          label: 'Clear',
-                          onPressed: clearSong,
-                          tooltip: 'Clear current song notation',
-                        ),
-                      ],
-                    ),
-
-                    buildToolbarSection(
-                      title: 'Edit',
-                      children: [
-                        buildToolbarButton(
-                          icon: Icons.undo,
-                          label: 'Undo',
-                          onPressed: undoLastAction,
-                          tooltip: 'Undo last action',
-                        ),
-
-                        buildToolbarButton(
-                          icon: Icons.redo,
-                          label: 'Redo',
-                          onPressed: redoLastAction,
-                          tooltip: 'Redo last action',
-                        ),
-                      ],
-                    ),
-
-                    buildToolbarSection(
-                      title: 'Import / Export',
-                      children: [
-                        buildToolbarButton(
-                          icon: Icons.upload_file,
-                          label: 'Export JSON',
-                          onPressed: exportSongJsonFile,
-                          tooltip: 'Export song JSON',
-                        ),
-
-                        buildToolbarButton(
-                          icon: Icons.download,
-                          label: 'Import JSON',
-                          onPressed: importSongJsonFile,
-                          tooltip: 'Import song JSON',
-                        ),
-
-                        buildToolbarButton(
-                          icon: Icons.image,
-                          label: 'PNG',
-                          onPressed: exportSheetAsPng,
-                          tooltip: 'Export sheet as PNG',
-                        ),
-
-                        buildToolbarButton(
-                          icon: Icons.picture_as_pdf,
-                          label: 'PDF',
-                          onPressed: exportSheetAsPdf,
-                          tooltip: 'Export sheet as PDF',
-                        ),
-                      ],
-                    ),
 
                     buildToolbarSection(
                       title: 'Folders',
@@ -3607,14 +3906,27 @@ class _EditorScreenState extends State<EditorScreen> {
                             ),
                           ),
                         ),
-                        Text(
-                          hasUnsavedChanges ? 'Unsaved changes' : 'Saved',
-                          style: TextStyle(
-                            color: hasUnsavedChanges
-                                ? Colors.orange
-                                : Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hasUnsavedChanges ? 'Unsaved changes' : 'Saved',
+                              style: TextStyle(
+                                color: hasUnsavedChanges ? Colors.orange : Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              getCurrentFileStateText(),
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -3810,6 +4122,12 @@ class ShamisenPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final backgroundPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRect(Offset.zero & size, backgroundPaint);
+
     final stringPaint = Paint()
       ..color = Colors.black
       ..strokeWidth = 2;

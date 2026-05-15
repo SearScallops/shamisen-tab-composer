@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(const ShamisenTabApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Shamisen Tab Composer Alpha 0.1'), findsOneWidget);
+    expect(find.text('Shamisen Tab Composer Beta 0.2.0'), findsOneWidget);
     expect(find.text('Song Settings'), findsOneWidget);
     expect(find.text('Note Input'), findsOneWidget);
 
