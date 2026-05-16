@@ -20,9 +20,136 @@ const String appFullTitle = 'Shamisen Tab Composer Beta 0.2.0';
 
 const int currentSongFileVersion = 1;
 
-void main() {
-  runApp(const ShamisenTabApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    LocalErrorLogger.writeFlutterError(details);
+  };
+
+  ui.PlatformDispatcher.instance.onError = (Object error, StackTrace stackTrace) {
+    LocalErrorLogger.writeError(
+      source: 'Uncaught platform error',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    return true;
+  };
+
+  runZonedGuarded<void>(
+    () {
+      runApp(const ShamisenTabApp());
+    },
+    (Object error, StackTrace stackTrace) {
+      LocalErrorLogger.writeError(
+        source: 'Uncaught zoned error',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    },
+  );
 }
+
+int clampJsonInt(int value, int minValue, int maxValue) {
+  if (value < minValue) return minValue;
+  if (value > maxValue) return maxValue;
+  return value;
+}
+
+int readJsonInt(
+  Map<String, dynamic> json,
+  String key,
+  int defaultValue,
+) {
+  final value = json[key];
+
+  if (value is int) return value;
+  if (value is num) return value.round();
+  if (value is String) return int.tryParse(value.trim()) ?? defaultValue;
+
+  return defaultValue;
+}
+
+double readJsonDouble(
+  Map<String, dynamic> json,
+  String key,
+  double defaultValue,
+) {
+  final value = json[key];
+
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim()) ?? defaultValue;
+
+  return defaultValue;
+}
+
+String readJsonString(
+  Map<String, dynamic> json,
+  String key,
+  String defaultValue,
+) {
+  final value = json[key];
+
+  if (value == null) return defaultValue;
+  if (value is String) {
+    final trimmedValue = value.trim();
+    return trimmedValue.isEmpty ? defaultValue : trimmedValue;
+  }
+
+  return value.toString();
+}
+
+Map<String, dynamic>? asStringKeyedMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+
+  if (value is Map) {
+    return value.map(
+      (key, mapValue) => MapEntry(key.toString(), mapValue),
+    );
+  }
+
+  return null;
+}
+
+List<Map<String, dynamic>> readJsonObjectList(dynamic value) {
+  if (value is! List) return <Map<String, dynamic>>[];
+
+  return value
+      .map(asStringKeyedMap)
+      .whereType<Map<String, dynamic>>()
+      .toList();
+}
+
+int durationSlotsFromRhythmString(String rhythm) {
+  switch (rhythm) {
+    case 'Whole':
+      return 16;
+    case 'Half':
+      return 8;
+    case 'Quarter':
+      return 4;
+    case 'Eighth':
+      return 2;
+    case 'Sixteenth':
+      return 1;
+    default:
+      return 4;
+  }
+}
+
+String readableErrorMessage(Object error) {
+  if (error is FormatException) {
+    return error.message;
+  }
+
+  if (error is FileSystemException) {
+    return error.message;
+  }
+
+  return error.toString();
+}
+
 
 class ShamisenTabApp extends StatelessWidget {
   const ShamisenTabApp({super.key});
@@ -68,13 +195,21 @@ class TabNote {
   }
 
   factory TabNote.fromJson(Map<String, dynamic> json) {
+    final rhythm = readJsonString(json, 'rhythm', 'Quarter');
+    final fallbackDurationSlots = durationSlotsFromRhythmString(rhythm);
+    final durationSlots = readJsonInt(
+      json,
+      'durationSlots',
+      fallbackDurationSlots,
+    );
+
     return TabNote(
-      stringNumber: json['stringNumber'] as int,
-      slot: json['slot'] as int,
-      durationSlots: json['durationSlots'] as int,
-      tabNumber: json['tabNumber'] as String,
-      rhythm: json['rhythm'] as String,
-      technique: json['technique'] as String,
+      stringNumber: clampJsonInt(readJsonInt(json, 'stringNumber', 1), 1, 3),
+      slot: readJsonInt(json, 'slot', 0),
+      durationSlots: durationSlots <= 0 ? fallbackDurationSlots : durationSlots,
+      tabNumber: readJsonString(json, 'tabNumber', '0'),
+      rhythm: rhythm,
+      technique: readJsonString(json, 'technique', 'None'),
     );
   }
 }
@@ -102,11 +237,19 @@ class TabRest {
   }
 
   factory TabRest.fromJson(Map<String, dynamic> json) {
+    final rhythm = readJsonString(json, 'rhythm', 'Quarter');
+    final fallbackDurationSlots = durationSlotsFromRhythmString(rhythm);
+    final durationSlots = readJsonInt(
+      json,
+      'durationSlots',
+      fallbackDurationSlots,
+    );
+
     return TabRest(
-      stringNumber: json['stringNumber'] as int,
-      slot: json['slot'] as int,
-      durationSlots: json['durationSlots'] as int,
-      rhythm: json['rhythm'] as String,
+      stringNumber: clampJsonInt(readJsonInt(json, 'stringNumber', 1), 1, 3),
+      slot: readJsonInt(json, 'slot', 0),
+      durationSlots: durationSlots <= 0 ? fallbackDurationSlots : durationSlots,
+      rhythm: rhythm,
     );
   }
 }
@@ -123,8 +266,8 @@ class SimileRepeat {
 
   factory SimileRepeat.fromJson(Map<String, dynamic> json) {
     return SimileRepeat(
-      measureIndex: json['measureIndex'] as int,
-      repeatLength: json['repeatLength'] as int? ?? 1,
+      measureIndex: readJsonInt(json, 'measureIndex', 0),
+      repeatLength: readJsonInt(json, 'repeatLength', 1),
     );
   }
 }
@@ -140,7 +283,10 @@ class LyricEntry {
   }
 
   factory LyricEntry.fromJson(Map<String, dynamic> json) {
-    return LyricEntry(slot: json['slot'] as int, text: json['text'] as String);
+    return LyricEntry(
+      slot: readJsonInt(json, 'slot', 0),
+      text: readJsonString(json, 'text', ''),
+    );
   }
 }
 
@@ -156,8 +302,8 @@ class SectionLabel {
 
   factory SectionLabel.fromJson(Map<String, dynamic> json) {
     return SectionLabel(
-      measureIndex: json['measureIndex'] as int,
-      text: json['text'] as String,
+      measureIndex: readJsonInt(json, 'measureIndex', 0),
+      text: readJsonString(json, 'text', ''),
     );
   }
 }
@@ -182,10 +328,13 @@ class SuriSlide {
   }
 
   factory SuriSlide.fromJson(Map<String, dynamic> json) {
+    final startSlot = readJsonInt(json, 'startSlot', 0);
+    final endSlot = readJsonInt(json, 'endSlot', startSlot);
+
     return SuriSlide(
-      stringNumber: json['stringNumber'] as int,
-      startSlot: json['startSlot'] as int,
-      endSlot: json['endSlot'] as int,
+      stringNumber: clampJsonInt(readJsonInt(json, 'stringNumber', 1), 1, 3),
+      startSlot: startSlot,
+      endSlot: endSlot,
     );
   }
 }
@@ -240,6 +389,91 @@ class SheetImageCapture {
   });
 }
 
+
+class LocalErrorLogger {
+  static Future<Directory> getAppDataDirectory() async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+
+    final appDirectory = Directory(
+      '${documentsDirectory.path}${Platform.pathSeparator}ShamisenTabComposer',
+    );
+
+    if (!await appDirectory.exists()) {
+      await appDirectory.create(recursive: true);
+    }
+
+    return appDirectory;
+  }
+
+  static Future<Directory> getLogDirectory() async {
+    final appDirectory = await getAppDataDirectory();
+
+    final logDirectory = Directory(
+      '${appDirectory.path}${Platform.pathSeparator}ErrorLogs',
+    );
+
+    if (!await logDirectory.exists()) {
+      await logDirectory.create(recursive: true);
+    }
+
+    return logDirectory;
+  }
+
+  static Future<File> getErrorLogFile() async {
+    final logDirectory = await getLogDirectory();
+
+    return File(
+      '${logDirectory.path}${Platform.pathSeparator}shamisen_tab_composer_errors.log',
+    );
+  }
+
+  static Future<void> writeFlutterError(FlutterErrorDetails details) async {
+    await writeError(
+      source: 'Flutter framework error',
+      error: details.exception,
+      stackTrace: details.stack,
+      extraDetails: details.toStringShort(),
+    );
+  }
+
+  static Future<void> writeError({
+    required String source,
+    required Object error,
+    StackTrace? stackTrace,
+    String? extraDetails,
+  }) async {
+    try {
+      final logFile = await getErrorLogFile();
+      final now = DateTime.now().toIso8601String();
+
+      final buffer = StringBuffer()
+        ..writeln('[$now]')
+        ..writeln('Source: $source')
+        ..writeln('Error: $error');
+
+      if (extraDetails != null && extraDetails.trim().isNotEmpty) {
+        buffer.writeln('Details: $extraDetails');
+      }
+
+      if (stackTrace != null) {
+        buffer
+          ..writeln('Stack trace:')
+          ..writeln(stackTrace);
+      }
+
+      buffer.writeln('----------------------------------------');
+
+      await logFile.writeAsString(
+        buffer.toString(),
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // Logging should never crash the app.
+    }
+  }
+}
+
 class EditorScreen extends StatefulWidget {
   const EditorScreen({super.key});
 
@@ -248,7 +482,9 @@ class EditorScreen extends StatefulWidget {
 }
 
 class _EditorScreenState extends State<EditorScreen> {
+  final ScrollController toolbarScrollController = ScrollController();
   final ScrollController horizontalScrollController = ScrollController();
+  final ScrollController verticalScrollController = ScrollController();
   final GlobalKey sheetExportKey = GlobalKey();
 
   final TextEditingController titleController = TextEditingController(
@@ -290,7 +526,9 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void dispose() {
     autoBackupTimer?.cancel();
+    toolbarScrollController.dispose();
     horizontalScrollController.dispose();
+    verticalScrollController.dispose();
     titleController.dispose();
     tempoController.dispose();
     super.dispose();
@@ -504,11 +742,17 @@ class _EditorScreenState extends State<EditorScreen> {
       await backupFile.writeAsString(encoder.convert(songData));
 
       lastAutoBackupFilePath = backupFile.path;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Autosave failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Autosave failed: $error';
+        statusMessage = 'Autosave failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -576,11 +820,18 @@ class _EditorScreenState extends State<EditorScreen> {
         statusMessage =
             'Recovered autosave backup. Use Save to store it as a normal song.';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Autosave recovery failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Autosave recovery failed: $error';
+        statusMessage =
+            'Autosave recovery failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -657,9 +908,18 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         statusMessage = 'Opened $label file location.';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Reveal file failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Could not open $label file location: $error';
+        statusMessage =
+            'Could not open $label file location: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -705,9 +965,18 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         statusMessage = 'Opened $label folder: $folderPath';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Open folder failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Could not open $label folder: $error';
+        statusMessage =
+            'Could not open $label folder: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -890,9 +1159,17 @@ class _EditorScreenState extends State<EditorScreen> {
         exportFile: exportFile,
         exportType: 'PNG',
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'PNG export failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Export failed: $error';
+        statusMessage = 'Export failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -943,9 +1220,17 @@ class _EditorScreenState extends State<EditorScreen> {
         exportFile: exportFile,
         exportType: 'PDF',
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'PDF export failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'PDF export failed: $error';
+        statusMessage = 'PDF export failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -989,6 +1274,93 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     return '$path.json';
+  }
+
+  String ensureTxtExtension(String path) {
+    final lowerPath = path.toLowerCase();
+
+    if (lowerPath.endsWith('.txt') || lowerPath.endsWith('.log')) {
+      return path;
+    }
+
+    return '$path.txt';
+  }
+
+  String createErrorReportFileName() {
+    return 'ShamisenTabComposer_ErrorReport_${createExportTimestamp()}.txt';
+  }
+
+  Future<void> exportErrorReport() async {
+    try {
+      final logFile = await LocalErrorLogger.getErrorLogFile();
+
+      if (!await logFile.exists()) {
+        if (!mounted) return;
+
+        setState(() {
+          statusMessage = 'No error log has been created yet.';
+        });
+        return;
+      }
+
+      final logContents = await logFile.readAsString();
+
+      if (logContents.trim().isEmpty) {
+        if (!mounted) return;
+
+        setState(() {
+          statusMessage = 'The error log is currently empty.';
+        });
+        return;
+      }
+
+      final textTypeGroup = XTypeGroup(
+        label: 'Text error report',
+        extensions: <String>['txt', 'log'],
+      );
+
+      final saveLocation = await getSaveLocation(
+        suggestedName: createErrorReportFileName(),
+        acceptedTypeGroups: <XTypeGroup>[textTypeGroup],
+      );
+
+      if (saveLocation == null) {
+        if (!mounted) return;
+
+        setState(() {
+          statusMessage = 'Export Error Report cancelled.';
+        });
+        return;
+      }
+
+      final exportPath = ensureTxtExtension(saveLocation.path);
+      final exportFile = File(exportPath);
+
+      await exportFile.writeAsString(logContents);
+
+      if (!mounted) return;
+
+      setState(() {
+        statusMessage = 'Exported error report: $exportPath';
+      });
+
+      await revealFileInFileExplorer(
+        filePath: exportPath,
+        label: 'error report',
+      );
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Export Error Report failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        statusMessage = 'Export Error Report failed: ${readableErrorMessage(error)}';
+      });
+    }
   }
 
   Map<String, dynamic> buildCurrentSongData() {
@@ -1092,11 +1464,17 @@ class _EditorScreenState extends State<EditorScreen> {
         hasUnsavedChanges = false;
         statusMessage = 'Saved "$songTitle": ${file.path}';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Save song failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Save failed: $error';
+        statusMessage = 'Save failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -1136,9 +1514,17 @@ class _EditorScreenState extends State<EditorScreen> {
       });
 
       await showSaveAsCompleteDialog(savedFile: exportFile);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Save As failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Save As failed: $error';
+        statusMessage = 'Save As failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -1188,9 +1574,17 @@ class _EditorScreenState extends State<EditorScreen> {
         statusMessage =
             'Opened song file: ${importedFile.path}. Use Save to add it to your song library.';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Open File failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Open File failed: $error';
+        statusMessage = 'Open File failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -1238,9 +1632,17 @@ class _EditorScreenState extends State<EditorScreen> {
           statusMessage = 'Deleted saved song "$deletedSongName".';
         }
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Delete saved song failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Delete failed: $error';
+        statusMessage = 'Delete failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -1366,9 +1768,17 @@ class _EditorScreenState extends State<EditorScreen> {
         selectedFile,
         isLibraryFile: true,
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Load song dialog failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Load failed: $error';
+        statusMessage = 'Load failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -1379,58 +1789,66 @@ class _EditorScreenState extends State<EditorScreen> {
   }) async {
     try {
       if (!await file.exists()) {
+        if (!mounted) return;
+
         setState(() {
-          statusMessage = 'Selected song file no longer exists.';
+          statusMessage = 'Load failed: selected song file no longer exists.';
         });
         return;
       }
 
-    final contents = await file.readAsString();
-    final data = jsonDecode(contents) as Map<String, dynamic>;
+      final contents = await file.readAsString();
 
-    final fileFormatVersionData = data['fileFormatVersion'];
-    int fileFormatVersion = 1;
+      final decodedData = jsonDecode(contents);
+      final data = asStringKeyedMap(decodedData);
 
-    if (fileFormatVersionData is int) {
-      fileFormatVersion = fileFormatVersionData;
-    } else if (fileFormatVersionData is String) {
-      fileFormatVersion = int.tryParse(fileFormatVersionData) ?? 1;
-    }
+      if (data == null) {
+        throw const FormatException(
+          'This JSON file is not a valid Shamisen song file.',
+        );
+      }
 
-    if (fileFormatVersion > currentSongFileVersion) {
-      setState(() {
-        statusMessage =
-            'Load failed: this song file was created with a newer file format.';
-      });
-      return;
-    }
+      final fileFormatVersionData = data['fileFormatVersion'];
+      int fileFormatVersion = 1;
 
-    final loadedNotes = (data['notes'] as List<dynamic>? ?? [])
-          .map((item) => TabNote.fromJson(item as Map<String, dynamic>))
-          .toList();
+      if (fileFormatVersionData is int) {
+        fileFormatVersion = fileFormatVersionData;
+      } else if (fileFormatVersionData is String) {
+        fileFormatVersion = int.tryParse(fileFormatVersionData.trim()) ?? 1;
+      }
 
-      final loadedRestData = data['rests'] as List<dynamic>? ?? [];
+      if (fileFormatVersion > currentSongFileVersion) {
+        if (!mounted) return;
 
-      final loadedRests = loadedRestData
-          .map((item) => TabRest.fromJson(item as Map<String, dynamic>))
-          .toList();
+        setState(() {
+          statusMessage =
+              'Load failed: this song file uses a newer file format. Please update the app.';
+        });
+        return;
+      }
 
-      final loadedSuriSlideData = data['suriSlides'] as List<dynamic>? ?? [];
+      final loadedTitle = readJsonString(
+        data,
+        'title',
+        'Untitled Shamisen Piece',
+      );
 
-      final loadedSuriSlides = loadedSuriSlideData
-          .map((item) => SuriSlide.fromJson(item as Map<String, dynamic>))
-          .toList();
+      final loadedTuning = readJsonString(
+        data,
+        'tuning',
+        'Honchoshi (本調子)',
+      );
 
-      final loadedTitle = data['title'] as String? ?? 'Untitled Shamisen Piece';
-      final loadedTuning = data['tuning'] as String? ?? 'Honchoshi (本調子)';
       final loadedTempo = data['tempoBpm'];
-
       String loadedTempoText = '120';
 
       if (loadedTempo is int) {
         loadedTempoText = loadedTempo.toString();
       } else if (loadedTempo is String) {
-        loadedTempoText = loadedTempo;
+        final parsedTempo = int.tryParse(loadedTempo.trim());
+        loadedTempoText = parsedTempo == null || parsedTempo <= 0
+            ? '120'
+            : parsedTempo.toString();
       }
 
       final loadedTotalMeasures = data['totalMeasures'];
@@ -1439,20 +1857,60 @@ class _EditorScreenState extends State<EditorScreen> {
       if (loadedTotalMeasures is int &&
           measureOptions.contains(loadedTotalMeasures)) {
         loadedMeasureCount = loadedTotalMeasures;
+      } else if (loadedTotalMeasures is String) {
+        final parsedMeasureCount = int.tryParse(loadedTotalMeasures.trim());
+
+        if (parsedMeasureCount != null &&
+            measureOptions.contains(parsedMeasureCount)) {
+          loadedMeasureCount = parsedMeasureCount;
+        }
       }
 
-      final loadedZoom = data['zoom'];
+      final loadedZoom = readJsonDouble(data, 'zoom', 1.0);
       double loadedZoomValue = 1.0;
 
-      if (loadedZoom is num && zoomOptions.contains(loadedZoom.toDouble())) {
-        loadedZoomValue = loadedZoom.toDouble();
+      if (zoomOptions.contains(loadedZoom)) {
+        loadedZoomValue = loadedZoom;
       }
 
-      final loadedSimileRepeatData =
-          data['simileRepeats'] as List<dynamic>? ?? [];
+      final totalSlots = loadedMeasureCount * slotsPerMeasure;
 
-      final loadedSimileRepeats = loadedSimileRepeatData
-          .map((item) => SimileRepeat.fromJson(item as Map<String, dynamic>))
+      final loadedNotes = readJsonObjectList(data['notes'])
+          .map(TabNote.fromJson)
+          .where(
+            (note) =>
+                note.slot >= 0 &&
+                note.slot < totalSlots &&
+                note.durationSlots > 0 &&
+                note.slot + note.durationSlots <= totalSlots,
+          )
+          .toList();
+
+      final loadedRests = readJsonObjectList(data['rests'])
+          .map(TabRest.fromJson)
+          .where(
+            (rest) =>
+                rest.slot >= 0 &&
+                rest.slot < totalSlots &&
+                rest.durationSlots > 0 &&
+                rest.slot + rest.durationSlots <= totalSlots,
+          )
+          .toList();
+
+      final loadedSuriSlides = readJsonObjectList(data['suriSlides'])
+          .map(SuriSlide.fromJson)
+          .where(
+            (slide) =>
+                slide.startSlot >= 0 &&
+                slide.endSlot >= 0 &&
+                slide.startSlot < totalSlots &&
+                slide.endSlot < totalSlots &&
+                slide.startSlot != slide.endSlot,
+          )
+          .toList();
+
+      final loadedSimileRepeats = readJsonObjectList(data['simileRepeats'])
+          .map(SimileRepeat.fromJson)
           .where(
             (repeat) => repeat.repeatLength == 1 || repeat.repeatLength == 2,
           )
@@ -1463,20 +1921,27 @@ class _EditorScreenState extends State<EditorScreen> {
           )
           .toList();
 
-      final loadedLyricData = data['lyrics'] as List<dynamic>? ?? [];
-
-      final loadedLyrics = loadedLyricData
-          .map((item) => LyricEntry.fromJson(item as Map<String, dynamic>))
-          .where((lyric) => lyric.slot < loadedMeasureCount * slotsPerMeasure)
+      final loadedLyrics = readJsonObjectList(data['lyrics'])
+          .map(LyricEntry.fromJson)
+          .where(
+            (lyric) =>
+                lyric.slot >= 0 &&
+                lyric.slot < totalSlots &&
+                lyric.text.trim().isNotEmpty,
+          )
           .toList();
 
-      final loadedSectionLabelData =
-          data['sectionLabels'] as List<dynamic>? ?? [];
-
-      final loadedSectionLabels = loadedSectionLabelData
-          .map((item) => SectionLabel.fromJson(item as Map<String, dynamic>))
-          .where((label) => label.measureIndex < loadedMeasureCount)
+      final loadedSectionLabels = readJsonObjectList(data['sectionLabels'])
+          .map(SectionLabel.fromJson)
+          .where(
+            (label) =>
+                label.measureIndex >= 0 &&
+                label.measureIndex < loadedMeasureCount &&
+                label.text.trim().isNotEmpty,
+          )
           .toList();
+
+      if (!mounted) return;
 
       setState(() {
         titleController.text = loadedTitle;
@@ -1491,23 +1956,29 @@ class _EditorScreenState extends State<EditorScreen> {
         selectedTotalMeasures = loadedMeasureCount;
         selectedZoom = loadedZoomValue;
 
-        notes.clear();
-        notes.addAll(loadedNotes);
+        notes
+          ..clear()
+          ..addAll(loadedNotes);
 
-        rests.clear();
-        rests.addAll(loadedRests);
+        rests
+          ..clear()
+          ..addAll(loadedRests);
 
-        suriSlides.clear();
-        suriSlides.addAll(loadedSuriSlides);
+        suriSlides
+          ..clear()
+          ..addAll(loadedSuriSlides);
 
-        simileRepeats.clear();
-        simileRepeats.addAll(loadedSimileRepeats);
+        simileRepeats
+          ..clear()
+          ..addAll(loadedSimileRepeats);
 
-        lyricEntries.clear();
-        lyricEntries.addAll(loadedLyrics);
+        lyricEntries
+          ..clear()
+          ..addAll(loadedLyrics);
 
-        sectionLabels.clear();
-        sectionLabels.addAll(loadedSectionLabels);
+        sectionLabels
+          ..clear()
+          ..addAll(loadedSectionLabels);
 
         pendingSuriStart = null;
         selectedNoteAnchor = null;
@@ -1526,9 +1997,17 @@ class _EditorScreenState extends State<EditorScreen> {
 
         statusMessage = 'Loaded "$loadedTitle".';
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Load song failed: ${file.path}',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        statusMessage = 'Load failed: $error';
+        statusMessage = 'Load failed: ${readableErrorMessage(error)}';
       });
     }
   }
@@ -2086,8 +2565,16 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   int? getSlotFromX(double x) {
-    if (x < leftMargin) return null;
-    return ((x - leftMargin) / getCurrentSlotSpacing()).round();
+    final currentSlotSpacing = getCurrentSlotSpacing();
+
+    if (x < leftMargin - currentSlotSpacing / 2) return null;
+
+    final slot = ((x - leftMargin) / currentSlotSpacing).round();
+    final totalSlots = selectedTotalMeasures * slotsPerMeasure;
+
+    if (slot < 0 || slot >= totalSlots) return null;
+
+    return slot;
   }
 
   int getMeasureIndexFromSlot(int slot) {
@@ -3355,13 +3842,26 @@ class _EditorScreenState extends State<EditorScreen> {
         autofocus: true,
         child: Scaffold(
           appBar: AppBar(title: const Text(appFullTitle)),
-          body: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: Colors.grey.shade100,
-                child: Wrap(
+          body: LayoutBuilder(
+            builder: (context, bodyConstraints) {
+              final toolbarMaxHeight = (bodyConstraints.maxHeight * 0.38)
+                  .clamp(180.0, 420.0)
+                  .toDouble();
+
+              return Column(
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: toolbarMaxHeight),
+                    child: Scrollbar(
+                      controller: toolbarScrollController,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: toolbarScrollController,
+                        padding: const EdgeInsets.all(12),
+                        child: Container(
+                          width: double.infinity,
+                          color: Colors.grey.shade100,
+                          child: Wrap(
                   spacing: 14,
                   runSpacing: 12,
                   crossAxisAlignment: WrapCrossAlignment.start,
@@ -3878,6 +4378,13 @@ class _EditorScreenState extends State<EditorScreen> {
                         ),
 
                         buildToolbarButton(
+                          icon: Icons.bug_report,
+                          label: 'Error Report',
+                          onPressed: exportErrorReport,
+                          tooltip: 'Export local error log',
+                        ),
+
+                        buildToolbarButton(
                           icon: Icons.info_outline,
                           label: 'About',
                           onPressed: showAboutAppDialog,
@@ -3933,8 +4440,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
 
-              Expanded(
+                  Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     const int slotsPerMeasure = 16;
@@ -3947,39 +4457,53 @@ class _EditorScreenState extends State<EditorScreen> {
                         totalMeasures * slotsPerMeasure * currentSlotSpacing +
                         160;
 
+                    final canvasHeight =
+                        constraints.maxHeight < 720 ? 720.0 : constraints.maxHeight;
+
                     return Scrollbar(
-                      controller: horizontalScrollController,
+                      controller: verticalScrollController,
                       thumbVisibility: true,
+                      notificationPredicate: (notification) =>
+                          notification.metrics.axis == Axis.vertical,
                       child: SingleChildScrollView(
-                        controller: horizontalScrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTapDown: (details) {
-                            handleCanvasClick(details.localPosition);
-                          },
-                          child: RepaintBoundary(
-                            key: sheetExportKey,
-                            child: CustomPaint(
-                              painter: ShamisenPainter(
-                                notes: notes,
-                                rests: rests,
-                                suriSlides: suriSlides,
-                                simileRepeats: simileRepeats,
-                                lyricEntries: lyricEntries,
-                                sectionLabels: sectionLabels,
-                                pendingSuriStart: pendingSuriStart,
-                                selectedNoteAnchor: selectedNoteAnchor,
-                                selectedTool: selectedTool,
-                                totalMeasures: totalMeasures,
-                                songTitle: getSongTitle(),
-                                selectedTuning: selectedTuning,
-                                tempoBpm: getTempoBpm(),
-                                slotSpacing: currentSlotSpacing,
-                              ),
-                              child: SizedBox(
-                                width: canvasWidth,
-                                height: constraints.maxHeight,
+                        controller: verticalScrollController,
+                        child: Scrollbar(
+                          controller: horizontalScrollController,
+                          thumbVisibility: true,
+                          notificationPredicate: (notification) =>
+                              notification.metrics.axis == Axis.horizontal,
+                          child: SingleChildScrollView(
+                            controller: horizontalScrollController,
+                            scrollDirection: Axis.horizontal,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapDown: (details) {
+                                handleCanvasClick(details.localPosition);
+                              },
+                              child: RepaintBoundary(
+                                key: sheetExportKey,
+                                child: CustomPaint(
+                                  painter: ShamisenPainter(
+                                    notes: notes,
+                                    rests: rests,
+                                    suriSlides: suriSlides,
+                                    simileRepeats: simileRepeats,
+                                    lyricEntries: lyricEntries,
+                                    sectionLabels: sectionLabels,
+                                    pendingSuriStart: pendingSuriStart,
+                                    selectedNoteAnchor: selectedNoteAnchor,
+                                    selectedTool: selectedTool,
+                                    totalMeasures: totalMeasures,
+                                    songTitle: getSongTitle(),
+                                    selectedTuning: selectedTuning,
+                                    tempoBpm: getTempoBpm(),
+                                    slotSpacing: currentSlotSpacing,
+                                  ),
+                                  child: SizedBox(
+                                    width: canvasWidth,
+                                    height: canvasHeight,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -3989,7 +4513,9 @@ class _EditorScreenState extends State<EditorScreen> {
                   },
                 ),
               ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -4398,17 +4924,40 @@ class ShamisenPainter extends CustomPainter {
 
       final width = (endX - startX).abs();
       final arcHeight = width < 60 ? 22.0 : 32.0;
+      final arcY = y - 52;
 
       final path = Path()
-        ..moveTo(startX, y - 52)
+        ..moveTo(startX, arcY)
         ..quadraticBezierTo(
           (startX + endX) / 2,
-          y - 52 - arcHeight,
+          arcY - arcHeight,
           endX,
-          y - 52,
+          arcY,
         );
 
       canvas.drawPath(path, slidePaint);
+
+      final symbolPainter = TextPainter(
+        text: const TextSpan(
+          text: '︵',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+
+      symbolPainter.layout();
+
+      symbolPainter.paint(
+        canvas,
+        Offset(
+          (startX + endX) / 2 - symbolPainter.width / 2,
+          arcY - arcHeight - symbolPainter.height / 2,
+        ),
+      );
     }
   }
 
