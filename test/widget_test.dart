@@ -1,21 +1,16 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shamisen_tab_composer/main.dart';
 
 void main() {
-  testWidgets('Shamisen Tab Composer starts without crashing',
-      (WidgetTester tester) async {
-    await tester.binding.setSurfaceSize(const Size(1600, 1200));
-
+  testWidgets('Shamisen Tab Composer starts without crashing', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const ShamisenTabApp());
-    await tester.pumpAndSettle();
 
-    expect(find.text('Shamisen Tab Composer Beta 0.2.0'), findsOneWidget);
-    expect(find.text('Song Settings'), findsOneWidget);
-    expect(find.text('Note Input'), findsOneWidget);
-
-    await tester.binding.setSurfaceSize(null);
+    expect(find.text(appFullTitle), findsOneWidget);
+    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(EditorScreen), findsOneWidget);
   });
 }

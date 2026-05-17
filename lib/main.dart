@@ -28,14 +28,15 @@ Future<void> main() async {
     LocalErrorLogger.writeFlutterError(details);
   };
 
-  ui.PlatformDispatcher.instance.onError = (Object error, StackTrace stackTrace) {
-    LocalErrorLogger.writeError(
-      source: 'Uncaught platform error',
-      error: error,
-      stackTrace: stackTrace,
-    );
-    return true;
-  };
+  ui.PlatformDispatcher.instance.onError =
+      (Object error, StackTrace stackTrace) {
+        LocalErrorLogger.writeError(
+          source: 'Uncaught platform error',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return true;
+      };
 
   runZonedGuarded<void>(
     () {
@@ -57,11 +58,7 @@ int clampJsonInt(int value, int minValue, int maxValue) {
   return value;
 }
 
-int readJsonInt(
-  Map<String, dynamic> json,
-  String key,
-  int defaultValue,
-) {
+int readJsonInt(Map<String, dynamic> json, String key, int defaultValue) {
   final value = json[key];
 
   if (value is int) return value;
@@ -104,9 +101,7 @@ Map<String, dynamic>? asStringKeyedMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
 
   if (value is Map) {
-    return value.map(
-      (key, mapValue) => MapEntry(key.toString(), mapValue),
-    );
+    return value.map((key, mapValue) => MapEntry(key.toString(), mapValue));
   }
 
   return null;
@@ -115,10 +110,7 @@ Map<String, dynamic>? asStringKeyedMap(dynamic value) {
 List<Map<String, dynamic>> readJsonObjectList(dynamic value) {
   if (value is! List) return <Map<String, dynamic>>[];
 
-  return value
-      .map(asStringKeyedMap)
-      .whereType<Map<String, dynamic>>()
-      .toList();
+  return value.map(asStringKeyedMap).whereType<Map<String, dynamic>>().toList();
 }
 
 int durationSlotsFromRhythmString(String rhythm) {
@@ -138,6 +130,76 @@ int durationSlotsFromRhythmString(String rhythm) {
   }
 }
 
+String normalizeRhythmString(String rhythm) {
+  final trimmedRhythm = rhythm.trim();
+
+  const validRhythms = <String>{
+    'Whole',
+    'Half',
+    'Quarter',
+    'Eighth',
+    'Sixteenth',
+  };
+
+  if (validRhythms.contains(trimmedRhythm)) {
+    return trimmedRhythm;
+  }
+
+  return 'Quarter';
+}
+
+String normalizeTechniqueString(String technique) {
+  final trimmedTechnique = technique.trim();
+
+  const validTechniques = <String>{
+    'None',
+    'Hajiki (弾き) - ハ',
+    'Uchi (打ち) - ウ',
+    'Oshi (押し) - オ',
+    'Yuri (揺り) - ユ',
+    'Kesu (消す) - 消',
+    'Sukui (救い) - ス',
+    'Tataki (叩き) - タ / 叩',
+    'Bachi (撥) - バ',
+    'Tsuke (付) - ツ',
+    'Keshi (消し) - ケ',
+    'Oshibachi (押し撥) - 押',
+    'Suberi (滑り) - 滑',
+  };
+
+  if (validTechniques.contains(trimmedTechnique)) {
+    return trimmedTechnique;
+  }
+
+  return 'None';
+}
+
+String normalizeTuningString(String tuning) {
+  final trimmedTuning = tuning.trim();
+
+  const validTunings = <String>{
+    'Honchoshi (本調子)',
+    'Niagari (二上り)',
+    'Sansagari (三下り)',
+  };
+
+  if (validTunings.contains(trimmedTuning)) {
+    return trimmedTuning;
+  }
+
+  return 'Honchoshi (本調子)';
+}
+
+double normalizeZoomValue(double zoom) {
+  const validZoomValues = <double>[0.75, 1.0, 1.25, 1.5];
+
+  if (validZoomValues.contains(zoom)) {
+    return zoom;
+  }
+
+  return 1.0;
+}
+
 String readableErrorMessage(Object error) {
   if (error is FormatException) {
     return error.message;
@@ -149,7 +211,6 @@ String readableErrorMessage(Object error) {
 
   return error.toString();
 }
-
 
 class ShamisenTabApp extends StatelessWidget {
   const ShamisenTabApp({super.key});
@@ -165,6 +226,8 @@ class ShamisenTabApp extends StatelessWidget {
 }
 
 enum EditorTool { write, erase, suri, rest, repeat, lyric, section }
+
+enum StatusLevel { info, success, warning, error }
 
 class TabNote {
   final int stringNumber;
@@ -195,12 +258,20 @@ class TabNote {
   }
 
   factory TabNote.fromJson(Map<String, dynamic> json) {
-    final rhythm = readJsonString(json, 'rhythm', 'Quarter');
+    final rhythm = normalizeRhythmString(
+      readJsonString(json, 'rhythm', 'Quarter'),
+    );
+
     final fallbackDurationSlots = durationSlotsFromRhythmString(rhythm);
+
     final durationSlots = readJsonInt(
       json,
       'durationSlots',
       fallbackDurationSlots,
+    );
+
+    final technique = normalizeTechniqueString(
+      readJsonString(json, 'technique', 'None'),
     );
 
     return TabNote(
@@ -209,7 +280,7 @@ class TabNote {
       durationSlots: durationSlots <= 0 ? fallbackDurationSlots : durationSlots,
       tabNumber: readJsonString(json, 'tabNumber', '0'),
       rhythm: rhythm,
-      technique: readJsonString(json, 'technique', 'None'),
+      technique: technique,
     );
   }
 }
@@ -237,8 +308,12 @@ class TabRest {
   }
 
   factory TabRest.fromJson(Map<String, dynamic> json) {
-    final rhythm = readJsonString(json, 'rhythm', 'Quarter');
+    final rhythm = normalizeRhythmString(
+      readJsonString(json, 'rhythm', 'Quarter'),
+    );
+
     final fallbackDurationSlots = durationSlotsFromRhythmString(rhythm);
+
     final durationSlots = readJsonInt(
       json,
       'durationSlots',
@@ -389,6 +464,21 @@ class SheetImageCapture {
   });
 }
 
+class SheetMetrics {
+  const SheetMetrics._();
+
+  static const double leftMargin = 80;
+  static const double rightMargin = 40;
+  static const double topMargin = 280;
+  static const double stringSpacing = 80;
+  static const double baseSlotSpacing = 25;
+  static const double stringHitRadius = 34;
+  static const double lyricRowYOffset = 110;
+
+  static const int slotsPerBeat = 4;
+  static const int beatsPerMeasure = 4;
+  static const int slotsPerMeasure = slotsPerBeat * beatsPerMeasure;
+}
 
 class LocalErrorLogger {
   static Future<Directory> getAppDataDirectory() async {
@@ -520,6 +610,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       checkForAutoBackupOnStartup();
+      loadRecentSongFiles();
     });
   }
 
@@ -610,21 +701,22 @@ class _EditorScreenState extends State<EditorScreen> {
   EditorTool selectedTool = EditorTool.write;
 
   String statusMessage = 'Ready';
+  StatusLevel statusLevel = StatusLevel.info;
 
   String? lastExportedFilePath;
   String? lastSavedSongFilePath;
   String? currentSongLibraryFilePath;
 
-  static const double leftMargin = 80;
-  static const double topMargin = 280;
-  static const double stringSpacing = 80;
-  static const double baseSlotSpacing = 25;
-  static const double stringHitRadius = 34;
-  static const double lyricRowYOffset = 110;
+  final List<String> recentSongFilePaths = [];
 
-  static const int slotsPerBeat = 4;
-  static const int beatsPerMeasure = 4;
-  static const int slotsPerMeasure = slotsPerBeat * beatsPerMeasure;
+  static const double leftMargin = SheetMetrics.leftMargin;
+  static const double topMargin = SheetMetrics.topMargin;
+  static const double stringSpacing = SheetMetrics.stringSpacing;
+  static const double baseSlotSpacing = SheetMetrics.baseSlotSpacing;
+  static const double stringHitRadius = SheetMetrics.stringHitRadius;
+  static const double lyricRowYOffset = SheetMetrics.lyricRowYOffset;
+
+  static const int slotsPerMeasure = SheetMetrics.slotsPerMeasure;
 
   int rhythmToSlots(String rhythm) {
     switch (rhythm) {
@@ -641,6 +733,75 @@ class _EditorScreenState extends State<EditorScreen> {
       default:
         return 4;
     }
+  }
+
+  int totalSlotsForMeasureCount(int measureCount) {
+    return measureCount * slotsPerMeasure;
+  }
+
+  int removeOutOfRangeNotationForMeasureCount(int measureCount) {
+    final totalSlots = totalSlotsForMeasureCount(measureCount);
+
+    int removedCount = 0;
+
+    final notesBefore = notes.length;
+    notes.removeWhere(
+      (note) =>
+          note.slot < 0 ||
+          note.slot >= totalSlots ||
+          note.durationSlots <= 0 ||
+          note.slot + note.durationSlots > totalSlots,
+    );
+    removedCount += notesBefore - notes.length;
+
+    final restsBefore = rests.length;
+    rests.removeWhere(
+      (rest) =>
+          rest.slot < 0 ||
+          rest.slot >= totalSlots ||
+          rest.durationSlots <= 0 ||
+          rest.slot + rest.durationSlots > totalSlots,
+    );
+    removedCount += restsBefore - rests.length;
+
+    final slidesBefore = suriSlides.length;
+    suriSlides.removeWhere(
+      (slide) =>
+          slide.startSlot < 0 ||
+          slide.endSlot < 0 ||
+          slide.startSlot >= totalSlots ||
+          slide.endSlot >= totalSlots ||
+          slide.startSlot == slide.endSlot,
+    );
+    removedCount += slidesBefore - suriSlides.length;
+
+    final repeatsBefore = simileRepeats.length;
+    simileRepeats.removeWhere(
+      (repeat) =>
+          repeat.measureIndex < 0 ||
+          repeat.measureIndex + repeat.repeatLength > measureCount,
+    );
+    removedCount += repeatsBefore - simileRepeats.length;
+
+    final lyricsBefore = lyricEntries.length;
+    lyricEntries.removeWhere(
+      (lyric) =>
+          lyric.slot < 0 ||
+          lyric.slot >= totalSlots ||
+          lyric.text.trim().isEmpty,
+    );
+    removedCount += lyricsBefore - lyricEntries.length;
+
+    final sectionLabelsBefore = sectionLabels.length;
+    sectionLabels.removeWhere(
+      (label) =>
+          label.measureIndex < 0 ||
+          label.measureIndex >= measureCount ||
+          label.text.trim().isEmpty,
+    );
+    removedCount += sectionLabelsBefore - sectionLabels.length;
+
+    return removedCount;
   }
 
   String getSongTitle() {
@@ -665,6 +826,82 @@ class _EditorScreenState extends State<EditorScreen> {
 
   double getCurrentSlotSpacing() {
     return baseSlotSpacing * selectedZoom;
+  }
+
+  void changeZoomByStep(int direction) {
+    final currentIndex = zoomOptions.indexOf(selectedZoom);
+
+    if (currentIndex < 0) {
+      setState(() {
+        selectedZoom = 1.0;
+        pendingSuriStart = null;
+        selectedNoteAnchor = null;
+        updateStatusFields(
+          'Reset zoom to 100%.',
+          StatusLevel.info,
+        );
+      });
+
+      scheduleAutoBackup();
+      return;
+    }
+
+    final nextIndex = (currentIndex + direction).clamp(
+      0,
+      zoomOptions.length - 1,
+    );
+
+    if (nextIndex == currentIndex) {
+      setState(() {
+        updateStatusFields(
+          direction < 0
+              ? 'Already at minimum zoom.'
+              : 'Already at maximum zoom.',
+          StatusLevel.warning,
+        );
+      });
+      return;
+    }
+
+    final nextZoom = zoomOptions[nextIndex];
+
+    setState(() {
+      selectedZoom = nextZoom;
+      pendingSuriStart = null;
+      selectedNoteAnchor = null;
+      updateStatusFields(
+        'Set zoom to ${(nextZoom * 100).round()}%.',
+        StatusLevel.info,
+      );
+    });
+
+    scheduleAutoBackup();
+  }
+
+  void updateStatusFields(String message, StatusLevel level) {
+    statusMessage = message;
+    statusLevel = level;
+  }
+
+  void showStatus(String message, {StatusLevel level = StatusLevel.info}) {
+    if (!mounted) return;
+
+    setState(() {
+      updateStatusFields(message, level);
+    });
+  }
+
+  Color getStatusColor() {
+    switch (statusLevel) {
+      case StatusLevel.success:
+        return Colors.green.shade700;
+      case StatusLevel.warning:
+        return Colors.orange.shade800;
+      case StatusLevel.error:
+        return Colors.red.shade700;
+      case StatusLevel.info:
+        return Colors.black87;
+    }
   }
 
   String sanitizeFileName(String input) {
@@ -702,6 +939,124 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Future<File> getRecentFilesStoreFile() async {
+    final songDirectory = await getSongDirectory();
+
+    return File(
+      '${songDirectory.path}${Platform.pathSeparator}_recent_files.json',
+    );
+  }
+
+  Future<void> loadRecentSongFiles() async {
+    try {
+      final recentFile = await getRecentFilesStoreFile();
+
+      if (!await recentFile.exists()) {
+        return;
+      }
+
+      final contents = await recentFile.readAsString();
+
+      if (contents.trim().isEmpty) {
+        return;
+      }
+
+      final decodedData = jsonDecode(contents);
+
+      List<dynamic> rawPaths;
+
+      if (decodedData is List) {
+        rawPaths = decodedData;
+      } else if (decodedData is Map && decodedData['recentFiles'] is List) {
+        rawPaths = decodedData['recentFiles'] as List<dynamic>;
+      } else {
+        rawPaths = <dynamic>[];
+      }
+
+      final cleanedPaths = <String>[];
+
+      for (final rawPath in rawPaths) {
+        if (rawPath is! String) continue;
+
+        final path = rawPath.trim();
+
+        if (path.isEmpty) continue;
+        if (cleanedPaths.contains(path)) continue;
+
+        final file = File(path);
+
+        if (await file.exists()) {
+          cleanedPaths.add(path);
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        recentSongFilePaths
+          ..clear()
+          ..addAll(cleanedPaths.take(10));
+      });
+
+      await saveRecentSongFiles();
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Load recent files failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> saveRecentSongFiles() async {
+    try {
+      final recentFile = await getRecentFilesStoreFile();
+
+      const encoder = JsonEncoder.withIndent('  ');
+
+      final data = {
+        'recentFiles': recentSongFilePaths.take(10).toList(),
+      };
+
+      await recentFile.writeAsString(encoder.convert(data));
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Save recent files failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> rememberRecentSongFile(String filePath) async {
+    final trimmedPath = filePath.trim();
+
+    if (trimmedPath.isEmpty) return;
+
+    recentSongFilePaths.remove(trimmedPath);
+    recentSongFilePaths.insert(0, trimmedPath);
+
+    if (recentSongFilePaths.length > 10) {
+      recentSongFilePaths.removeRange(10, recentSongFilePaths.length);
+    }
+
+    await saveRecentSongFiles();
+
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  Future<void> forgetRecentSongFile(String filePath) async {
+    recentSongFilePaths.remove(filePath);
+
+    await saveRecentSongFiles();
+
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
   Future<void> checkForAutoBackupOnStartup() async {
     try {
       final backupFile = await getAutoBackupFile();
@@ -714,8 +1069,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         lastAutoBackupFilePath = backupFile.path;
-        statusMessage =
-            'Autosave backup found. Use Recover Autosave Backup if you need it.';
+        updateStatusFields(
+          'Autosave backup found. Use Recover Autosave Backup if you need it.',
+          StatusLevel.warning,
+        );
       });
     } catch (_) {
       // Silent startup check only.
@@ -752,7 +1109,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Autosave failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Autosave failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -774,7 +1134,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          statusMessage = 'No autosave backup found.';
+          updateStatusFields('No autosave backup found.', StatusLevel.warning);
         });
         return;
       }
@@ -810,15 +1170,18 @@ class _EditorScreenState extends State<EditorScreen> {
       if (shouldRecover != true) return;
       if (!mounted) return;
 
-      await loadSongFromFile(backupFile);
+      final backupLoaded = await loadSongFromFile(backupFile);
 
+      if (!backupLoaded) return;
       if (!mounted) return;
 
       setState(() {
         hasUnsavedChanges = true;
         lastAutoBackupFilePath = backupFile.path;
-        statusMessage =
-            'Recovered autosave backup. Use Save to store it as a normal song.';
+        updateStatusFields(
+          'Recovered autosave backup. Use Save to store it as a normal song.',
+          StatusLevel.success,
+        );
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -830,8 +1193,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage =
-            'Autosave recovery failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Autosave recovery failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -878,7 +1243,10 @@ class _EditorScreenState extends State<EditorScreen> {
     try {
       if (filePath == null || filePath.trim().isEmpty) {
         setState(() {
-          statusMessage = 'No $label file has been created yet.';
+          updateStatusFields(
+            'No $label file has been created yet.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -887,7 +1255,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (!await file.exists()) {
         setState(() {
-          statusMessage = 'The last $label file no longer exists: $filePath';
+          updateStatusFields(
+            'The last $label file no longer exists: $filePath',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -900,13 +1271,19 @@ class _EditorScreenState extends State<EditorScreen> {
         await Process.start('xdg-open', [file.parent.absolute.path]);
       } else {
         setState(() {
-          statusMessage = 'Reveal file is not supported on this platform.';
+          updateStatusFields(
+            'Reveal file is not supported on this platform.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
 
       setState(() {
-        statusMessage = 'Opened $label file location.';
+        updateStatusFields(
+          'Opened $label file location.',
+          StatusLevel.success,
+        );
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -918,8 +1295,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage =
-            'Could not open $label file location: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Could not open $label file location: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -957,13 +1336,19 @@ class _EditorScreenState extends State<EditorScreen> {
         await Process.start('xdg-open', [folderPath]);
       } else {
         setState(() {
-          statusMessage = 'Open folder is not supported on this platform.';
+          updateStatusFields(
+            'Open folder is not supported on this platform.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
 
       setState(() {
-        statusMessage = 'Opened $label folder: $folderPath';
+        updateStatusFields(
+          'Opened $label folder.',
+          StatusLevel.success,
+        );
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -975,8 +1360,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage =
-            'Could not open $label folder: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Could not open $label folder: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1062,9 +1449,7 @@ class _EditorScreenState extends State<EditorScreen> {
           title: Text('$exportType export complete'),
           content: SizedBox(
             width: 520,
-            child: SelectableText(
-              'Saved to:\n${exportFile.path}',
-            ),
+            child: SelectableText('Saved to:\n${exportFile.path}'),
           ),
           actions: [
             TextButton(
@@ -1091,21 +1476,17 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Future<void> showSaveAsCompleteDialog({
-    required File savedFile,
-  }) async {
+  Future<void> showSaveCopyCompleteDialog({required File savedFile}) async {
     if (!mounted) return;
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Save As complete'),
+          title: const Text('Save Copy complete'),
           content: SizedBox(
             width: 520,
-            child: SelectableText(
-              'Saved to:\n${savedFile.path}',
-            ),
+            child: SelectableText('Saved copy to:\n${savedFile.path}'),
           ),
           actions: [
             TextButton(
@@ -1135,7 +1516,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> exportSheetAsPng() async {
     try {
       setState(() {
-        statusMessage = 'Exporting PNG...';
+        updateStatusFields('Exporting PNG...', StatusLevel.info);
       });
 
       final capture = await captureSheetAsPngBytes();
@@ -1152,13 +1533,13 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         lastExportedFilePath = exportFile.path;
-        statusMessage = 'Exported PNG: ${exportFile.path}';
+        updateStatusFields(
+          'PNG export completed successfully.',
+          StatusLevel.success,
+        );
       });
 
-      await showExportCompleteDialog(
-        exportFile: exportFile,
-        exportType: 'PNG',
-      );
+      await showExportCompleteDialog(exportFile: exportFile, exportType: 'PNG');
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'PNG export failed',
@@ -1169,7 +1550,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Export failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'PNG export failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1177,7 +1561,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> exportSheetAsPdf() async {
     try {
       setState(() {
-        statusMessage = 'Exporting PDF...';
+        updateStatusFields('Exporting PDF...', StatusLevel.info);
       });
 
       final capture = await captureSheetAsPngBytes();
@@ -1187,15 +1571,14 @@ class _EditorScreenState extends State<EditorScreen> {
 
       document.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat(
-            capture.logicalWidth,
-            capture.logicalHeight,
-            marginAll: 0,
-          ),
+          pageFormat: PdfPageFormat.letter.landscape,
+          margin: const pw.EdgeInsets.all(24),
           build: (context) {
-            return pw.FullPage(
-              ignoreMargins: true,
-              child: pw.Image(sheetImage, fit: pw.BoxFit.contain),
+            return pw.Center(
+              child: pw.Image(
+                sheetImage,
+                fit: pw.BoxFit.contain,
+              ),
             );
           },
         ),
@@ -1213,13 +1596,13 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         lastExportedFilePath = exportFile.path;
-        statusMessage = 'Exported PDF: ${exportFile.path}';
+        updateStatusFields(
+          'PDF export completed successfully.',
+          StatusLevel.success,
+        );
       });
 
-      await showExportCompleteDialog(
-        exportFile: exportFile,
-        exportType: 'PDF',
-      );
+      await showExportCompleteDialog(exportFile: exportFile, exportType: 'PDF');
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'PDF export failed',
@@ -1230,7 +1613,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'PDF export failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'PDF export failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1298,7 +1684,10 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          statusMessage = 'No error log has been created yet.';
+          updateStatusFields(
+            'No error log has been created yet.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -1309,7 +1698,10 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          statusMessage = 'The error log is currently empty.';
+          updateStatusFields(
+            'The error log is currently empty.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -1328,7 +1720,10 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          statusMessage = 'Export Error Report cancelled.';
+          updateStatusFields(
+            'Export Error Report cancelled.',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -1341,7 +1736,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Exported error report: $exportPath';
+        updateStatusFields(
+          'Exported error report successfully.',
+          StatusLevel.success,
+        );
       });
 
       await revealFileInFileExplorer(
@@ -1358,7 +1756,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Export Error Report failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Export Error Report failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1444,7 +1845,10 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          statusMessage = 'Save cancelled to avoid overwriting "$songTitle".';
+          updateStatusFields(
+            'Save cancelled to avoid overwriting "$songTitle".',
+            StatusLevel.warning,
+          );
         });
         return;
       }
@@ -1462,8 +1866,14 @@ class _EditorScreenState extends State<EditorScreen> {
         lastSavedSongFilePath = file.path;
         currentSongLibraryFilePath = file.path;
         hasUnsavedChanges = false;
-        statusMessage = 'Saved "$songTitle": ${file.path}';
+        updateStatusFields(
+          'Saved "$songTitle" successfully.',
+          StatusLevel.success,
+        );
       });
+
+      await rememberRecentSongFile(file.path);
+
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'Save song failed',
@@ -1474,12 +1884,15 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Save failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Save failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
 
-  Future<void> exportSongJsonFile() async {
+  Future<void> saveSongCopy() async {
     try {
       final jsonTypeGroup = XTypeGroup(
         label: 'Shamisen song JSON',
@@ -1494,8 +1907,10 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       if (saveLocation == null) {
+        if (!mounted) return;
+
         setState(() {
-        statusMessage = 'Save As cancelled.';
+          updateStatusFields('Save Copy cancelled.', StatusLevel.warning);
         });
         return;
       }
@@ -1508,15 +1923,19 @@ class _EditorScreenState extends State<EditorScreen> {
       const encoder = JsonEncoder.withIndent('  ');
       await exportFile.writeAsString(encoder.convert(songData));
 
+      if (!mounted) return;
+
       setState(() {
-        lastSavedSongFilePath = exportFile.path;
-        statusMessage = 'Saved song copy: $exportPath';
+        updateStatusFields(
+          'Saved song copy successfully. Your active library file was not changed.',
+          StatusLevel.success,
+        );
       });
 
-      await showSaveAsCompleteDialog(savedFile: exportFile);
+      await showSaveCopyCompleteDialog(savedFile: exportFile);
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
-        source: 'Save As failed',
+        source: 'Save Copy failed',
         error: error,
         stackTrace: stackTrace,
       );
@@ -1524,7 +1943,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Save As failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Save Copy failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1549,7 +1971,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (selectedFile == null) {
         setState(() {
-          statusMessage = 'Open File cancelled.';
+          updateStatusFields('Open File cancelled.', StatusLevel.warning);
         });
         return;
       }
@@ -1558,21 +1980,27 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (!await importedFile.exists()) {
         setState(() {
-          statusMessage = 'Import failed: selected file does not exist.';
+          updateStatusFields(
+            'Open File failed: selected file does not exist.',
+            StatusLevel.error,
+          );
         });
         return;
       }
 
-      await loadSongFromFile(importedFile);
+      final importedSuccessfully = await loadSongFromFile(importedFile);
 
+      if (!importedSuccessfully) return;
       if (!mounted) return;
 
       scheduleAutoBackup();
 
       setState(() {
         hasUnsavedChanges = true;
-        statusMessage =
-            'Opened song file: ${importedFile.path}. Use Save to add it to your song library.';
+        updateStatusFields(
+          'Opened song file successfully. Use Save to add it to your song library.',
+          StatusLevel.success,
+        );
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -1584,7 +2012,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Open File failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Open File failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1621,15 +2052,22 @@ class _EditorScreenState extends State<EditorScreen> {
         await file.delete();
       }
 
+      await forgetRecentSongFile(file.path);
+
       setState(() {
         if (deletedCurrentSong) {
           currentSongLibraryFilePath = null;
           lastSavedSongFilePath = null;
           hasUnsavedChanges = true;
-          statusMessage =
-              'Deleted "$deletedSongName". The current sheet is still open, but it is no longer saved.';
+          updateStatusFields(
+            'Deleted "$deletedSongName". The current sheet is still open, but it is no longer saved.',
+            StatusLevel.warning,
+          );
         } else {
-          statusMessage = 'Deleted saved song "$deletedSongName".';
+          updateStatusFields(
+            'Deleted saved song "$deletedSongName".',
+            StatusLevel.success,
+          );
         }
       });
     } catch (error, stackTrace) {
@@ -1642,7 +2080,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Delete failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Delete failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
@@ -1660,7 +2101,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (savedFiles.isEmpty) {
         setState(() {
-          statusMessage = 'No saved songs found.';
+          updateStatusFields('No saved songs found.', StatusLevel.warning);
         });
         return;
       }
@@ -1764,10 +2205,12 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (selectedFile == null) return;
 
-      await loadSongFromFile(
+      final loadedSuccessfully = await loadSongFromFile(
         selectedFile,
         isLibraryFile: true,
       );
+
+      if (!loadedSuccessfully) return;
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'Load song dialog failed',
@@ -1778,23 +2221,139 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        statusMessage = 'Load failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Load failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
     }
   }
 
-  Future<void> loadSongFromFile(
-    File file, {
-    bool isLibraryFile = false,
-  }) async {
+  Future<void> showRecentFilesDialog() async {
+    final canContinue = await confirmUnsavedChangesBefore(
+      'opening a recent song file',
+    );
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
+    if (recentSongFilePaths.isEmpty) {
+      setState(() {
+        updateStatusFields(
+          'No recent files yet.',
+          StatusLevel.warning,
+        );
+      });
+      return;
+    }
+
+    final selectedPath = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Recent Files'),
+              content: SizedBox(
+                width: 560,
+                height: 360,
+                child: recentSongFilePaths.isEmpty
+                    ? const Center(
+                        child: Text('No recent files.'),
+                      )
+                    : ListView.builder(
+                        itemCount: recentSongFilePaths.length,
+                        itemBuilder: (context, index) {
+                          final path = recentSongFilePaths[index];
+                          final displayName = displayNameFromPath(path);
+
+                          return ListTile(
+                            leading: const Icon(Icons.history),
+                            title: Text(displayName),
+                            subtitle: Text(
+                              path,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              Navigator.of(dialogContext).pop(path);
+                            },
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close),
+                              tooltip: 'Remove from recent files',
+                              onPressed: () async {
+                                await forgetRecentSongFile(path);
+
+                                setDialogState(() {});
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(null);
+                  },
+                  child: const Text('Return'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (selectedPath == null) return;
+    if (!mounted) return;
+
+    final selectedFile = File(selectedPath);
+
+    if (!await selectedFile.exists()) {
+      await forgetRecentSongFile(selectedPath);
+
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          'Recent file no longer exists. Removed it from the list.',
+          StatusLevel.warning,
+        );
+      });
+      return;
+    }
+
+    final loadedSuccessfully = await loadSongFromFile(selectedFile);
+
+    if (!loadedSuccessfully) return;
+
+    await rememberRecentSongFile(selectedFile.path);
+
+    if (!mounted) return;
+
+    setState(() {
+      hasUnsavedChanges = true;
+      updateStatusFields(
+        'Opened recent file successfully. Use Save to add it to your song library.',
+        StatusLevel.success,
+      );
+    });
+  }
+
+  Future<bool> loadSongFromFile(File file, {bool isLibraryFile = false}) async {
     try {
       if (!await file.exists()) {
-        if (!mounted) return;
+        if (!mounted) return false;
 
         setState(() {
-          statusMessage = 'Load failed: selected song file no longer exists.';
+          updateStatusFields(
+            'Load failed: selected song file no longer exists.',
+            StatusLevel.error,
+          );
         });
-        return;
+
+        return false;
       }
 
       final contents = await file.readAsString();
@@ -1818,13 +2377,16 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       if (fileFormatVersion > currentSongFileVersion) {
-        if (!mounted) return;
+        if (!mounted) return false;
 
         setState(() {
-          statusMessage =
-              'Load failed: this song file uses a newer file format. Please update the app.';
+          updateStatusFields(
+            'Load failed: this song file uses a newer file format. Please update the app.',
+            StatusLevel.error,
+          );
         });
-        return;
+
+        return false;
       }
 
       final loadedTitle = readJsonString(
@@ -1833,10 +2395,8 @@ class _EditorScreenState extends State<EditorScreen> {
         'Untitled Shamisen Piece',
       );
 
-      final loadedTuning = readJsonString(
-        data,
-        'tuning',
-        'Honchoshi (本調子)',
+      final loadedTuning = normalizeTuningString(
+        readJsonString(data, 'tuning', 'Honchoshi (本調子)'),
       );
 
       final loadedTempo = data['tempoBpm'];
@@ -1866,12 +2426,9 @@ class _EditorScreenState extends State<EditorScreen> {
         }
       }
 
-      final loadedZoom = readJsonDouble(data, 'zoom', 1.0);
-      double loadedZoomValue = 1.0;
-
-      if (zoomOptions.contains(loadedZoom)) {
-        loadedZoomValue = loadedZoom;
-      }
+      final loadedZoomValue = normalizeZoomValue(
+        readJsonDouble(data, 'zoom', 1.0),
+      );
 
       final totalSlots = loadedMeasureCount * slotsPerMeasure;
 
@@ -1941,16 +2498,12 @@ class _EditorScreenState extends State<EditorScreen> {
           )
           .toList();
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       setState(() {
         titleController.text = loadedTitle;
 
-        if (tunings.contains(loadedTuning)) {
-          selectedTuning = loadedTuning;
-        } else {
-          selectedTuning = 'Honchoshi (本調子)';
-        }
+        selectedTuning = loadedTuning;
 
         tempoController.text = loadedTempoText;
         selectedTotalMeasures = loadedMeasureCount;
@@ -1995,8 +2548,15 @@ class _EditorScreenState extends State<EditorScreen> {
           currentSongLibraryFilePath = null;
         }
 
-        statusMessage = 'Loaded "$loadedTitle".';
+        updateStatusFields(
+          'Loaded "$loadedTitle" successfully.',
+          StatusLevel.success,
+        );
       });
+
+      await rememberRecentSongFile(file.path);
+
+      return true;
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'Load song failed: ${file.path}',
@@ -2004,11 +2564,16 @@ class _EditorScreenState extends State<EditorScreen> {
         stackTrace: stackTrace,
       );
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       setState(() {
-        statusMessage = 'Load failed: ${readableErrorMessage(error)}';
+        updateStatusFields(
+          'Load failed: ${readableErrorMessage(error)}',
+          StatusLevel.error,
+        );
       });
+
+      return false;
     }
   }
 
@@ -2128,7 +2693,7 @@ class _EditorScreenState extends State<EditorScreen> {
       lastExportedFilePath = null;
 
       hasUnsavedChanges = true;
-      statusMessage = 'Started new song.';
+      updateStatusFields('Started new song.', StatusLevel.success);
     });
   }
 
@@ -2151,7 +2716,7 @@ class _EditorScreenState extends State<EditorScreen> {
               '- Section labels\n'
               '- Simile repeat marks\n'
               '- Save/load song library\n'
-              '- Save As and Open File support\n'
+              '- Save Copy and Open File support\n'
               '- PNG/PDF export\n'
               '- Undo/Redo\n'
               '- Keyboard shortcuts\n'
@@ -2190,7 +2755,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 '3. Click an existing note in Write mode to select and edit it.\n'
                 '4. Use Save to store the song in your local song library.\n'
                 '5. Use Load to open a saved song from your local song library.\n'
-                '6. Use Save As to save a song file anywhere on your computer.\n'
+                '6. Use Save Copy to save a JSON copy anywhere on your computer.\n'
                 '7. Use Open File to open a song file from anywhere on your computer.\n\n'
                 'Tools\n'
                 '8. Use PNG or PDF export to share or print the current sheet.\n\n'
@@ -2270,7 +2835,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 '- Undo and redo\n'
                 '- Save and load local song files\n'
                 '- Delete saved songs from the Load window\n'
-                '- Save As song file support\n'
+                '- Save Copy song file support\n'
                 '- Open File song file support\n'
                 '- PNG export\n'
                 '- PDF export\n'
@@ -2384,7 +2949,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void undoLastAction() {
     if (undoStack.isEmpty) {
       setState(() {
-        statusMessage = 'Nothing to undo.';
+        updateStatusFields('Nothing to undo.', StatusLevel.warning);
       });
       return;
     }
@@ -2399,7 +2964,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       restoreSongSnapshot(previousSnapshot);
       hasUnsavedChanges = true;
-      statusMessage = 'Undid last action.';
+      updateStatusFields('Undid last action.', StatusLevel.info);
     });
 
     scheduleAutoBackup();
@@ -2408,7 +2973,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void redoLastAction() {
     if (redoStack.isEmpty) {
       setState(() {
-        statusMessage = 'Nothing to redo.';
+        updateStatusFields('Nothing to redo.', StatusLevel.warning);
       });
       return;
     }
@@ -2423,7 +2988,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       restoreSongSnapshot(nextSnapshot);
       hasUnsavedChanges = true;
-      statusMessage = 'Redid last action.';
+      updateStatusFields('Redid last action.', StatusLevel.info);
     });
 
     scheduleAutoBackup();
@@ -2433,7 +2998,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
-      statusMessage = 'Cleared selection.';
+      updateStatusFields('Cleared selection.', StatusLevel.info);
     });
   }
 
@@ -2448,29 +3013,49 @@ class _EditorScreenState extends State<EditorScreen> {
 
       switch (tool) {
         case EditorTool.write:
-          statusMessage = 'Write mode.';
+          updateStatusFields('Write mode.', StatusLevel.info);
           break;
+
         case EditorTool.erase:
-          statusMessage =
-              'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.';
+          updateStatusFields(
+            'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.',
+            StatusLevel.info,
+          );
           break;
+
         case EditorTool.suri:
-          statusMessage =
-              'Suri mode: click the starting note, then ending note.';
+          updateStatusFields(
+            'Suri mode: click the starting note, then ending note.',
+            StatusLevel.info,
+          );
           break;
+
         case EditorTool.rest:
-          statusMessage = 'Rest mode: click a line to place a rest.';
+          updateStatusFields(
+            'Rest mode: click a line to place a rest.',
+            StatusLevel.info,
+          );
           break;
+
         case EditorTool.repeat:
-          statusMessage =
-              'Repeat mode: click a measure to toggle a simile mark.';
+          updateStatusFields(
+            'Repeat mode: click a measure to toggle a simile mark.',
+            StatusLevel.info,
+          );
           break;
+
         case EditorTool.lyric:
-          statusMessage =
-              'Lyric mode: click a note/rest timing slot to add or edit lyrics.';
+          updateStatusFields(
+            'Lyric mode: click a note/rest timing slot to add or edit lyrics.',
+            StatusLevel.info,
+          );
           break;
+
         case EditorTool.section:
-          statusMessage = 'Section mode: click a measure to add/edit a label.';
+          updateStatusFields(
+            'Section mode: click a measure to add/edit a label.',
+            StatusLevel.info,
+          );
           break;
       }
     });
@@ -2527,7 +3112,7 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedNoteAnchor = null;
 
       hasUnsavedChanges = true;
-      statusMessage = 'Cleared song.';
+      updateStatusFields('Cleared song.', StatusLevel.success);
     });
   }
 
@@ -2644,7 +3229,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (slot < 0 || slot >= totalSlots) {
       setState(() {
-        statusMessage = 'Click inside the song measure area.';
+        updateStatusFields(
+          'Click inside the song measure area.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -2653,7 +3241,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (existingIndex < 0 && !slotHasNoteOrRestStart(slot)) {
       setState(() {
-        statusMessage = 'Place a note or rest first, then add lyrics under it.';
+        updateStatusFields(
+          'Place a note or rest first, then add lyrics under it.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -2716,7 +3307,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (trimmedText.isEmpty && existingIndex < 0) {
       setState(() {
-        statusMessage = 'No lyric added.';
+        updateStatusFields('No lyric added.', StatusLevel.warning);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
       });
@@ -2728,7 +3319,10 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       if (trimmedText.isEmpty) {
         lyricEntries.removeAt(existingIndex);
-        statusMessage = 'Deleted lyric.';
+        updateStatusFields(
+          'Deleted lyric.',
+          StatusLevel.success,
+        );
 
         pendingSuriStart = null;
         selectedNoteAnchor = null;
@@ -2739,10 +3333,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (existingIndex >= 0) {
         lyricEntries[existingIndex] = newLyric;
-        statusMessage = 'Updated lyric.';
+        updateStatusFields('Updated lyric.', StatusLevel.success);
       } else {
         lyricEntries.add(newLyric);
-        statusMessage = 'Added lyric under note/rest.';
+        updateStatusFields('Added lyric under note/rest.', StatusLevel.success);
       }
 
       pendingSuriStart = null;
@@ -2761,7 +3355,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (measureIndex < 0 || measureIndex >= selectedTotalMeasures) {
       setState(() {
-        statusMessage = 'Click inside the song measure area.';
+        updateStatusFields(
+          'Click inside the song measure area.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -2825,7 +3422,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (trimmedText.isEmpty && existingIndex < 0) {
       setState(() {
-        statusMessage = 'No section label added.';
+        updateStatusFields('No section label added.', StatusLevel.warning);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
       });
@@ -2837,7 +3434,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       if (trimmedText.isEmpty) {
         sectionLabels.removeAt(existingIndex);
-        statusMessage = 'Deleted section label.';
+        updateStatusFields('Deleted section label.', StatusLevel.success);
 
         pendingSuriStart = null;
         selectedNoteAnchor = null;
@@ -2851,10 +3448,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (existingIndex >= 0) {
         sectionLabels[existingIndex] = newLabel;
-        statusMessage = 'Updated section label.';
+        updateStatusFields('Updated section label.', StatusLevel.success);
       } else {
         sectionLabels.add(newLabel);
-        statusMessage = 'Added section label.';
+        updateStatusFields('Added section label.', StatusLevel.success);
       }
 
       pendingSuriStart = null;
@@ -2945,8 +3542,10 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedTool = EditorTool.write;
       pendingSuriStart = null;
 
-      statusMessage =
-          'Selected note ${note.tabNumber} on String ${note.stringNumber}.';
+      updateStatusFields(
+        'Selected note ${note.tabNumber} on String ${note.stringNumber}.',
+        StatusLevel.info,
+      );
     });
   }
 
@@ -2973,8 +3572,10 @@ class _EditorScreenState extends State<EditorScreen> {
       durationSlots: updatedDurationSlots,
     )) {
       setState(() {
-        statusMessage =
-            'Cannot update selected note: rhythm overlaps a simile repeat measure.';
+        updateStatusFields(
+          'Cannot update selected note: rhythm overlaps a simile repeat measure.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -2995,8 +3596,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (overlaps) {
         setState(() {
-          statusMessage =
-              'Cannot update selected note: rhythm overlaps another note.';
+          updateStatusFields(
+            'Cannot update selected note: rhythm overlaps another note.',
+            StatusLevel.error,
+          );
         });
         return;
       }
@@ -3014,8 +3617,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (overlaps) {
         setState(() {
-          statusMessage =
-              'Cannot update selected note: rhythm overlaps a rest.';
+          updateStatusFields(
+            'Cannot update selected note: rhythm overlaps a rest.',
+            StatusLevel.error,
+          );
         });
         return;
       }
@@ -3047,7 +3652,7 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedTool = EditorTool.write;
       pendingSuriStart = null;
 
-      statusMessage = 'Updated selected note.';
+      updateStatusFields('Updated selected note.', StatusLevel.success);
     });
   }
 
@@ -3070,6 +3675,15 @@ class _EditorScreenState extends State<EditorScreen> {
       return rest.stringNumber == stringNumber &&
           clickedSlot >= restStart &&
           clickedSlot < restEnd;
+    });
+  }
+
+  int findAnyRestIndexAtSlot(int clickedSlot) {
+    return rests.indexWhere((rest) {
+      final restStart = rest.slot;
+      final restEnd = rest.slot + rest.durationSlots;
+
+      return clickedSlot >= restStart && clickedSlot < restEnd;
     });
   }
 
@@ -3130,7 +3744,10 @@ class _EditorScreenState extends State<EditorScreen> {
       durationSlots: durationSlots,
     )) {
       setState(() {
-        statusMessage = 'Cannot place note: this measure has a simile repeat.';
+        updateStatusFields(
+          'Cannot place note: this measure has a simile repeat.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3147,8 +3764,6 @@ class _EditorScreenState extends State<EditorScreen> {
     });
 
     final overlappingRestIndex = rests.indexWhere((rest) {
-      if (rest.stringNumber != stringNumber) return false;
-
       return notesOverlap(
         startA: slot,
         durationA: durationSlots,
@@ -3159,14 +3774,20 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingRestIndex >= 0) {
       setState(() {
-        statusMessage = 'Cannot place note: rhythm overlaps a rest.';
+        updateStatusFields(
+          'Cannot place note: rhythm overlaps a rest.',
+          StatusLevel.error,
+        );
       });
       return;
     }
 
     if (overlappingIndex >= 0) {
       setState(() {
-        statusMessage = 'Cannot place note: rhythm overlaps another note.';
+        updateStatusFields(
+          'Cannot place note: rhythm overlaps another note.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3191,7 +3812,10 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       pendingSuriStart = null;
-      statusMessage = 'Placed and selected $selectedRhythm note.';
+      updateStatusFields(
+        'Placed and selected $selectedRhythm note.',
+        StatusLevel.success,
+      );
     });
   }
 
@@ -3203,12 +3827,15 @@ class _EditorScreenState extends State<EditorScreen> {
       durationSlots: durationSlots,
     )) {
       setState(() {
-        statusMessage = 'Cannot place rest: this measure has a simile repeat.';
+        updateStatusFields(
+          'Cannot place rest: this measure has a simile repeat.',
+          StatusLevel.error,
+        );
       });
       return;
     }
 
-    final existingRestIndex = findRestIndexAt(stringNumber, slot);
+    final existingRestIndex = findAnyRestIndexAtSlot(slot);
 
     if (existingRestIndex >= 0) {
       final removedRest = rests[existingRestIndex];
@@ -3222,14 +3849,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
-        statusMessage = 'Removed rest and attached lyric.';
+        updateStatusFields(
+          'Removed rest and attached lyric.',
+          StatusLevel.success,
+        );
       });
       return;
     }
 
     final overlappingNoteIndex = notes.indexWhere((note) {
-      if (note.stringNumber != stringNumber) return false;
-
       return notesOverlap(
         startA: slot,
         durationA: durationSlots,
@@ -3240,14 +3868,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingNoteIndex >= 0) {
       setState(() {
-        statusMessage = 'Cannot place rest: overlaps a note.';
+        updateStatusFields(
+          'Cannot place rest: overlaps a note.',
+          StatusLevel.error,
+        );
       });
       return;
     }
 
     final overlappingRestIndex = rests.indexWhere((rest) {
-      if (rest.stringNumber != stringNumber) return false;
-
       return notesOverlap(
         startA: slot,
         durationA: durationSlots,
@@ -3258,7 +3887,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingRestIndex >= 0) {
       setState(() {
-        statusMessage = 'Cannot place rest: overlaps another rest.';
+        updateStatusFields(
+          'Cannot place rest: overlaps another rest.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3276,7 +3908,7 @@ class _EditorScreenState extends State<EditorScreen> {
       rests.add(newRest);
       selectedNoteAnchor = null;
       pendingSuriStart = null;
-      statusMessage = 'Placed $selectedRhythm rest.';
+      updateStatusFields('Placed $selectedRhythm rest.', StatusLevel.success);
     });
   }
 
@@ -3286,7 +3918,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (measureIndex < 0 || measureIndex >= selectedTotalMeasures) {
       setState(() {
-        statusMessage = 'Click inside the song measure area.';
+        updateStatusFields(
+          'Click inside the song measure area.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -3302,32 +3937,40 @@ class _EditorScreenState extends State<EditorScreen> {
         simileRepeats.removeAt(existingRepeatIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        statusMessage =
-            'Removed ${removedRepeat.repeatLength}-measure simile repeat.';
+        updateStatusFields(
+          'Removed ${removedRepeat.repeatLength}-measure simile repeat.',
+          StatusLevel.success,
+        );
       });
       return;
     }
 
     if (repeatLength == 1 && measureIndex == 0) {
       setState(() {
-        statusMessage =
-            'A one-measure simile repeat cannot be placed in measure 1.';
+        updateStatusFields(
+          'A one-measure simile repeat cannot be placed in measure 1.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
 
     if (repeatLength == 2 && measureIndex < 2) {
       setState(() {
-        statusMessage =
-            'A two-measure simile repeat needs two previous measures to repeat.';
+        updateStatusFields(
+          'A two-measure simile repeat needs two previous measures to repeat.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
 
     if (measureIndex + repeatLength > selectedTotalMeasures) {
       setState(() {
-        statusMessage =
-            'Not enough space for a $repeatLength-measure simile repeat here.';
+        updateStatusFields(
+          'Not enough space for a $repeatLength-measure simile repeat here.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -3337,8 +3980,10 @@ class _EditorScreenState extends State<EditorScreen> {
       measureLength: repeatLength,
     )) {
       setState(() {
-        statusMessage =
-            'Cannot place simile repeat: selected measure range already has notes or rests.';
+        updateStatusFields(
+          'Cannot place simile repeat: selected measure range already has notes or rests.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3348,8 +3993,10 @@ class _EditorScreenState extends State<EditorScreen> {
       measureLength: repeatLength,
     )) {
       setState(() {
-        statusMessage =
-            'Cannot place simile repeat: it overlaps another repeat mark.';
+        updateStatusFields(
+          'Cannot place simile repeat: it overlaps another repeat mark.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3365,11 +4012,15 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedNoteAnchor = null;
 
       if (repeatLength == 1) {
-        statusMessage =
-            'Added one-measure simile repeat to measure ${measureIndex + 1}.';
+        updateStatusFields(
+          'Added one-measure simile repeat to measure ${measureIndex + 1}.',
+          StatusLevel.success,
+        );
       } else {
-        statusMessage =
-            'Added two-measure simile repeat from measure ${measureIndex + 1} to ${measureIndex + 2}.';
+        updateStatusFields(
+          'Added two-measure simile repeat from measure ${measureIndex + 1} to ${measureIndex + 2}.',
+          StatusLevel.success,
+        );
       }
     });
   }
@@ -3379,7 +4030,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (noteIndex < 0) {
       setState(() {
-        statusMessage = 'Suri mode: click an existing note.';
+        updateStatusFields(
+          'Suri mode: click an existing note.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -3393,7 +4047,10 @@ class _EditorScreenState extends State<EditorScreen> {
     if (pendingSuriStart == null) {
       setState(() {
         pendingSuriStart = clickedAnchor;
-        statusMessage = 'Suri start selected. Click the ending note.';
+        updateStatusFields(
+          'Suri start selected. Click the ending note.',
+          StatusLevel.info,
+        );
       });
       return;
     }
@@ -3403,7 +4060,10 @@ class _EditorScreenState extends State<EditorScreen> {
     if (start.stringNumber != clickedAnchor.stringNumber) {
       setState(() {
         pendingSuriStart = null;
-        statusMessage = 'Suri must connect notes on the same string.';
+        updateStatusFields(
+          'Suri must connect notes on the same string.',
+          StatusLevel.error,
+        );
       });
       return;
     }
@@ -3411,7 +4071,10 @@ class _EditorScreenState extends State<EditorScreen> {
     if (start.slot == clickedAnchor.slot) {
       setState(() {
         pendingSuriStart = null;
-        statusMessage = 'Suri needs two different notes.';
+        updateStatusFields(
+          'Suri needs two different notes.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -3437,7 +4100,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         suriSlides.removeAt(existingSlideIndex);
         pendingSuriStart = null;
-        statusMessage = 'Removed Suri slide.';
+        updateStatusFields('Removed Suri slide.', StatusLevel.success);
       });
       return;
     }
@@ -3454,14 +4117,14 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       pendingSuriStart = null;
-      statusMessage = 'Added Suri slide.';
+      updateStatusFields('Added Suri slide.', StatusLevel.success);
     });
   }
 
   void deleteSelectedNote() {
     if (selectedNoteAnchor == null) {
       setState(() {
-        statusMessage = 'No selected note to delete.';
+        updateStatusFields('No selected note to delete.', StatusLevel.warning);
       });
       return;
     }
@@ -3477,7 +4140,10 @@ class _EditorScreenState extends State<EditorScreen> {
     if (noteIndex < 0) {
       setState(() {
         selectedNoteAnchor = null;
-        statusMessage = 'Selected note no longer exists.';
+        updateStatusFields(
+          'Selected note no longer exists.',
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -3501,7 +4167,7 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
 
-      statusMessage = 'Deleted selected note.';
+      updateStatusFields('Deleted selected note.', StatusLevel.success);
     });
   }
 
@@ -3537,8 +4203,10 @@ class _EditorScreenState extends State<EditorScreen> {
           selectedNoteAnchor = null;
         }
 
-        statusMessage =
-            'Deleted note, related Suri slides, and attached lyric.';
+        updateStatusFields(
+          'Deleted note, related Suri slides, and attached lyric.',
+          StatusLevel.success,
+        );
       });
 
       return;
@@ -3558,14 +4226,17 @@ class _EditorScreenState extends State<EditorScreen> {
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
-        statusMessage = 'Deleted rest and attached lyric.';
+        updateStatusFields(
+          'Deleted rest and attached lyric.',
+          StatusLevel.success,
+        );
       });
 
       return;
     }
 
     setState(() {
-      statusMessage = 'No note or rest to erase here.';
+      updateStatusFields('No note or rest to erase here.', StatusLevel.warning);
     });
   }
 
@@ -3585,7 +4256,7 @@ class _EditorScreenState extends State<EditorScreen> {
         suriSlides.removeAt(suriSlideIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        statusMessage = 'Deleted Suri slide.';
+        updateStatusFields('Deleted Suri slide.', StatusLevel.success);
       });
       return;
     }
@@ -3600,7 +4271,7 @@ class _EditorScreenState extends State<EditorScreen> {
           lyricEntries.removeAt(lyricIndex);
           pendingSuriStart = null;
           selectedNoteAnchor = null;
-          statusMessage = 'Deleted lyric.';
+          updateStatusFields('Deleted lyric.', StatusLevel.success);
         });
         return;
       }
@@ -3635,7 +4306,10 @@ class _EditorScreenState extends State<EditorScreen> {
         simileRepeats.removeAt(repeatIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        statusMessage = 'Deleted simile repeat from measure $measureNumber.';
+        updateStatusFields(
+          'Deleted simile repeat from measure $measureNumber.',
+          StatusLevel.success,
+        );
       });
       return;
     }
@@ -3650,13 +4324,13 @@ class _EditorScreenState extends State<EditorScreen> {
         sectionLabels.removeAt(sectionIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        statusMessage = 'Deleted section label.';
+        updateStatusFields('Deleted section label.', StatusLevel.success);
       });
       return;
     }
 
     setState(() {
-      statusMessage = 'Nothing to erase here.';
+      updateStatusFields('Nothing to erase here.', StatusLevel.warning);
     });
   }
 
@@ -3667,6 +4341,7 @@ class _EditorScreenState extends State<EditorScreen> {
         enabled: false,
         child: Text(
           'Left-Hand Techniques (左手 - Hidarite)',
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
         ),
       );
@@ -3678,12 +4353,43 @@ class _EditorScreenState extends State<EditorScreen> {
         enabled: false,
         child: Text(
           'Right-Hand Techniques (右手 - Migite)',
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
       );
     }
 
-    return DropdownMenuItem<String>(value: technique, child: Text(technique));
+    return DropdownMenuItem<String>(
+      value: technique,
+      child: Text(technique, overflow: TextOverflow.ellipsis),
+    );
+  }
+
+  Widget buildDropdownControl<T>({
+    required String label,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+    double width = 260,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          const SizedBox(width: 6),
+          Expanded(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              items: items,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget buildToolbarSection({
@@ -3862,657 +4568,701 @@ class _EditorScreenState extends State<EditorScreen> {
                           width: double.infinity,
                           color: Colors.grey.shade100,
                           child: Wrap(
-                  spacing: 14,
-                  runSpacing: 12,
-                  crossAxisAlignment: WrapCrossAlignment.start,
-                  children: [
-                    buildToolbarSection(
-                      title: 'Song Settings',
-                      children: [
-                        SizedBox(
-                          width: 260,
-                          child: TextField(
-                            controller: titleController,
-                            decoration: const InputDecoration(
-                              labelText: 'Title',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (_) {
-                              scheduleAutoBackup();
+                            spacing: 14,
+                            runSpacing: 12,
+                            crossAxisAlignment: WrapCrossAlignment.start,
+                            children: [
+                              buildToolbarSection(
+                                title: 'Song Settings',
+                                children: [
+                                  SizedBox(
+                                    width: 260,
+                                    child: TextField(
+                                      controller: titleController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Title',
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (_) {
+                                        scheduleAutoBackup();
 
-                              setState(() {
-                                statusMessage = 'Updated song title.';
-                              });
-                            },
-                          ),
-                        ),
-
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Tuning: '),
-                            DropdownButton<String>(
-                              value: selectedTuning,
-                              items: tunings.map((tuning) {
-                                return DropdownMenuItem<String>(
-                                  value: tuning,
-                                  child: Text(tuning),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-
-                                scheduleAutoBackup();
-
-                                setState(() {
-                                  selectedTuning = value;
-                                  statusMessage = 'Selected tuning: $value.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(
-                          width: 110,
-                          child: TextField(
-                            controller: tempoController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'BPM',
-                              isDense: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (value) {
-                              scheduleAutoBackup();
-
-                              setState(() {
-                                final parsedTempo = int.tryParse(value.trim());
-
-                                if (parsedTempo == null || parsedTempo <= 0) {
-                                  statusMessage =
-                                      'Tempo should be a positive number.';
-                                } else {
-                                  statusMessage =
-                                      'Updated tempo to $parsedTempo BPM.';
-                                }
-                              });
-                            },
-                          ),
-                        ),
-
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Measures: '),
-                            DropdownButton<int>(
-                              value: selectedTotalMeasures,
-                              items: measureOptions.map((measureCount) {
-                                return DropdownMenuItem<int>(
-                                  value: measureCount,
-                                  child: Text('$measureCount'),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-
-                                saveUndoSnapshot();
-
-                                setState(() {
-                                  selectedTotalMeasures = value;
-
-                                  simileRepeats.removeWhere(
-                                    (repeat) =>
-                                        repeat.measureIndex +
-                                            repeat.repeatLength >
-                                        selectedTotalMeasures,
-                                  );
-
-                                  lyricEntries.removeWhere(
-                                    (lyric) =>
-                                        lyric.slot >=
-                                        selectedTotalMeasures * slotsPerMeasure,
-                                  );
-
-                                  sectionLabels.removeWhere(
-                                    (label) =>
-                                        label.measureIndex >=
-                                        selectedTotalMeasures,
-                                  );
-
-                                  pendingSuriStart = null;
-                                  selectedNoteAnchor = null;
-                                  statusMessage =
-                                      'Set song length to $value measures.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Zoom: '),
-                            DropdownButton<double>(
-                              value: selectedZoom,
-                              items: zoomOptions.map((zoomValue) {
-                                final zoomPercent = (zoomValue * 100).round();
-
-                                return DropdownMenuItem<double>(
-                                  value: zoomValue,
-                                  child: Text('$zoomPercent%'),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-
-                                scheduleAutoBackup();
-
-                                setState(() {
-                                  selectedZoom = value;
-                                  pendingSuriStart = null;
-                                  selectedNoteAnchor = null;
-                                  statusMessage =
-                                      'Set zoom to ${(value * 100).round()}%.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    buildToolbarSection(
-                      title: 'Note Input',
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Tab Number: '),
-                            DropdownButton<String>(
-                              value: selectedTabNumber,
-                              items: shamisenTabNumbers.map((tabNumber) {
-                                return DropdownMenuItem<String>(
-                                  value: tabNumber,
-                                  child: Text(tabNumber),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-
-                                if (getSelectedNoteIndex() >= 0) {
-                                  updateSelectedNote(tabNumber: value);
-                                  return;
-                                }
-
-                                setState(() {
-                                  selectedTabNumber = value;
-                                  selectedTool = EditorTool.write;
-                                  pendingSuriStart = null;
-                                  statusMessage = 'Selected tab number $value.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Rhythm: '),
-                            DropdownButton<String>(
-                              value: selectedRhythm,
-                              items: rhythms.map((rhythm) {
-                                return DropdownMenuItem<String>(
-                                  value: rhythm,
-                                  child: Text(
-                                    '$rhythm (${rhythmToSlots(rhythm)} slots)',
+                                        setState(() {
+                                          updateStatusFields(
+                                            'Updated song title.',
+                                            StatusLevel.info,
+                                          );
+                                        });
+                                      },
+                                    ),
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
 
-                                if (getSelectedNoteIndex() >= 0) {
-                                  updateSelectedNote(rhythm: value);
-                                  return;
-                                }
+                                  buildDropdownControl<String>(
+                                    label: 'Tuning:',
+                                    value: selectedTuning,
+                                    width: 260,
+                                    items: tunings.map((tuning) {
+                                      return DropdownMenuItem<String>(
+                                        value: tuning,
+                                        child: Text(
+                                          tuning,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
 
-                                setState(() {
-                                  selectedRhythm = value;
-                                  selectedTool = EditorTool.write;
-                                  pendingSuriStart = null;
-                                  statusMessage =
-                                      'Selected $value rhythm: ${rhythmToSlots(value)} slots.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
+                                      scheduleAutoBackup();
 
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Technique: '),
-                            DropdownButton<String>(
-                              value: selectedTechnique,
-                              items: techniques
-                                  .map(buildTechniqueDropdownItem)
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-                                if (value == 'LEFT_HAND_HEADER') return;
-                                if (value == 'RIGHT_HAND_HEADER') return;
-
-                                if (getSelectedNoteIndex() >= 0) {
-                                  updateSelectedNote(technique: value);
-                                  return;
-                                }
-
-                                setState(() {
-                                  selectedTechnique = value;
-                                  selectedTool = EditorTool.write;
-                                  pendingSuriStart = null;
-                                  statusMessage = 'Selected technique: $value.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Repeat: '),
-                            DropdownButton<int>(
-                              value: selectedRepeatLength,
-                              items: repeatLengthOptions.map((length) {
-                                return DropdownMenuItem<int>(
-                                  value: length,
-                                  child: Text(
-                                    length == 1 ? '1-measure' : '2-measure',
+                                      setState(() {
+                                        selectedTuning = value;
+                                        updateStatusFields(
+                                          'Selected tuning: $value.',
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
 
-                                setState(() {
-                                  selectedRepeatLength = value;
-                                  pendingSuriStart = null;
-                                  selectedNoteAnchor = null;
-                                  statusMessage =
-                                      'Selected ${value == 1 ? 'one-measure' : 'two-measure'} repeat.';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                                  SizedBox(
+                                    width: 110,
+                                    child: TextField(
+                                      controller: tempoController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(
+                                        labelText: 'BPM',
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (value) {
+                                        scheduleAutoBackup();
 
-                    buildToolbarSection(
-                      title: 'Notation Tools',
-                      children: [
-                        buildSelectableToolbarButton(
-                          icon: Icons.edit,
-                          label: 'Write',
-                          isSelected: isWriteMode,
-                          selectedColor: Colors.blue,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.write);
-                          },
-                          tooltip: 'Write note (Ctrl + 1)',
-                        ),
+                                        setState(() {
+                                          final parsedTempo = int.tryParse(
+                                            value.trim(),
+                                          );
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.delete,
-                          label: 'Erase',
-                          isSelected: isEraseMode,
-                          selectedColor: Colors.red,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.erase);
-                          },
-                          tooltip: 'Smart erase (Ctrl + 2)',
-                        ),
+                                          if (parsedTempo == null ||
+                                              parsedTempo <= 0) {
+                                            updateStatusFields(
+                                              'Tempo should be a positive number.',
+                                              StatusLevel.warning,
+                                            );
+                                          } else {
+                                            updateStatusFields(
+                                              'Updated tempo to $parsedTempo BPM.',
+                                              StatusLevel.info,
+                                            );
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.timeline,
-                          label: 'Suri',
-                          isSelected: isSuriMode,
-                          selectedColor: Colors.green,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.suri);
-                          },
-                          tooltip: 'Suri slide mode (Ctrl + 3)',
-                        ),
+                                  buildDropdownControl<int>(
+                                    label: 'Measures:',
+                                    value: selectedTotalMeasures,
+                                    width: 160,
+                                    items: measureOptions.map((measureCount) {
+                                      return DropdownMenuItem<int>(
+                                        value: measureCount,
+                                        child: Text('$measureCount'),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.fiber_manual_record,
-                          label: 'Rest',
-                          isSelected: isRestMode,
-                          selectedColor: Colors.purple,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.rest);
-                          },
-                          tooltip: 'Rest mode (Ctrl + 4)',
-                        ),
+                                      if (value == selectedTotalMeasures) {
+                                        return;
+                                      }
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.repeat,
-                          label: 'Repeat',
-                          isSelected: isRepeatMode,
-                          selectedColor: Colors.brown,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.repeat);
-                          },
-                          tooltip: 'Simile repeat mode (Ctrl + 5)',
-                        ),
+                                      saveUndoSnapshot();
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.text_fields,
-                          label: 'Lyric',
-                          isSelected: isLyricMode,
-                          selectedColor: Colors.teal,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.lyric);
-                          },
-                          tooltip: 'Lyric mode (Ctrl + 6)',
-                        ),
+                                      setState(() {
+                                        selectedTotalMeasures = value;
 
-                        buildSelectableToolbarButton(
-                          icon: Icons.label,
-                          label: 'Section',
-                          isSelected: isSectionMode,
-                          selectedColor: Colors.indigo,
-                          onPressed: () {
-                            selectToolFromShortcut(EditorTool.section);
-                          },
-                          tooltip: 'Section label mode (Ctrl + 7)',
-                        ),
-                      ],
-                    ),
+                                        final removedCount =
+                                            removeOutOfRangeNotationForMeasureCount(
+                                              value,
+                                            );
 
-                        buildToolbarSection(
-                          title: 'File',
-                          children: [
-                            buildToolbarButton(
-                              icon: Icons.note_add,
-                              label: 'New',
-                              onPressed: newSong,
-                              tooltip: 'Start a new song',
-                            ),
+                                        pendingSuriStart = null;
+                                        selectedNoteAnchor = null;
 
-                            buildToolbarButton(
-                              icon: Icons.save,
-                              label: 'Save',
-                              onPressed: saveSong,
-                              tooltip: 'Save song to the local song library',
-                            ),
+                                        if (removedCount > 0) {
+                                          updateStatusFields(
+                                            'Set song length to $value measures. Removed $removedCount out-of-range item${removedCount == 1 ? '' : 's'}.',
+                                            StatusLevel.warning,
+                                          );
+                                        } else {
+                                          updateStatusFields(
+                                            'Set song length to $value measures.',
+                                            StatusLevel.info,
+                                          );
+                                        }
+                                      });
+                                    },
+                                  ),
 
-                            buildToolbarButton(
-                              icon: Icons.folder_open,
-                              label: 'Load',
-                              onPressed: loadSong,
-                              tooltip: 'Load song from the local song library',
-                            ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      buildToolbarButton(
+                                        icon: Icons.remove,
+                                        label: 'Zoom -',
+                                        onPressed: () {
+                                          changeZoomByStep(-1);
+                                        },
+                                        tooltip: 'Zoom out',
+                                      ),
+                                      const SizedBox(width: 8),
+                                      buildDropdownControl<double>(
+                                        label: 'Zoom:',
+                                        value: selectedZoom,
+                                        width: 160,
+                                        items: zoomOptions.map((zoomValue) {
+                                          final zoomPercent = (zoomValue * 100).round();
 
-                            buildToolbarButton(
-                              icon: Icons.save_as,
-                              label: 'Save As',
-                              onPressed: exportSongJsonFile,
-                              tooltip: 'Save a copy of this song file anywhere on your computer',
-                            ),
+                                          return DropdownMenuItem<double>(
+                                            value: zoomValue,
+                                            child: Text('$zoomPercent%'),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          if (value == null) return;
 
-                            buildToolbarButton(
-                              icon: Icons.file_open,
-                              label: 'Open File',
-                              onPressed: importSongJsonFile,
-                              tooltip: 'Open a song file from anywhere on your computer',
-                            ),
+                                          setState(() {
+                                            selectedZoom = value;
+                                            pendingSuriStart = null;
+                                            selectedNoteAnchor = null;
+                                            updateStatusFields(
+                                              'Set zoom to ${(value * 100).round()}%.',
+                                              StatusLevel.info,
+                                            );
+                                          });
 
-                            buildToolbarButton(
-                              icon: Icons.restore_page,
-                              label: 'Recover',
-                              onPressed: recoverAutoBackup,
-                              tooltip: 'Recover autosave backup',
-                            ),
+                                          scheduleAutoBackup();
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      buildToolbarButton(
+                                        icon: Icons.add,
+                                        label: 'Zoom +',
+                                        onPressed: () {
+                                          changeZoomByStep(1);
+                                        },
+                                        tooltip: 'Zoom in',
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
 
-                            buildToolbarButton(
-                              icon: Icons.delete_sweep,
-                              label: 'Clear',
-                              onPressed: clearSong,
-                              tooltip: 'Clear current song notation',
-                            ),
-                          ],
-                        ),
+                              buildToolbarSection(
+                                title: 'Note Input',
+                                children: [
+                                  buildDropdownControl<String>(
+                                    label: 'Tab Number:',
+                                    value: selectedTabNumber,
+                                    width: 190,
+                                    items: shamisenTabNumbers.map((tabNumber) {
+                                      return DropdownMenuItem<String>(
+                                        value: tabNumber,
+                                        child: Text(tabNumber),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
 
-                        buildToolbarSection(
-                          title: 'Edit',
-                          children: [
-                            buildToolbarButton(
-                              icon: Icons.undo,
-                              label: 'Undo',
-                              onPressed: undoLastAction,
-                              tooltip: 'Undo last action',
-                            ),
+                                      if (getSelectedNoteIndex() >= 0) {
+                                        updateSelectedNote(tabNumber: value);
+                                        return;
+                                      }
 
-                            buildToolbarButton(
-                              icon: Icons.redo,
-                              label: 'Redo',
-                              onPressed: redoLastAction,
-                              tooltip: 'Redo last action',
-                            ),
-                          ],
-                        ),
+                                      setState(() {
+                                        selectedTabNumber = value;
+                                        selectedTool = EditorTool.write;
+                                        pendingSuriStart = null;
+                                        updateStatusFields(
+                                          'Selected tab number $value.',
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
+                                  ),
 
-                        buildToolbarSection(
-                          title: 'Export',
-                          children: [
-                            buildToolbarButton(
-                              icon: Icons.image,
-                              label: 'PNG',
-                              onPressed: exportSheetAsPng,
-                              tooltip: 'Export sheet as PNG image',
-                            ),
+                                  buildDropdownControl<String>(
+                                    label: 'Rhythm:',
+                                    value: selectedRhythm,
+                                    width: 230,
+                                    items: rhythms.map((rhythm) {
+                                      return DropdownMenuItem<String>(
+                                        value: rhythm,
+                                        child: Text(
+                                          '$rhythm (${rhythmToSlots(rhythm)} slots)',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
 
-                            buildToolbarButton(
-                              icon: Icons.picture_as_pdf,
-                              label: 'PDF',
-                              onPressed: exportSheetAsPdf,
-                              tooltip: 'Export sheet as PDF document',
-                            ),
-                          ],
-                        ),
+                                      if (getSelectedNoteIndex() >= 0) {
+                                        updateSelectedNote(rhythm: value);
+                                        return;
+                                      }
 
-                    buildToolbarSection(
-                      title: 'Folders',
-                      children: [
-                        buildToolbarButton(
-                          icon: Icons.library_music,
-                          label: 'Songs',
-                          onPressed: openSongFolder,
-                          tooltip: 'Open song library folder',
-                        ),
+                                      setState(() {
+                                        selectedRhythm = value;
+                                        selectedTool = EditorTool.write;
+                                        pendingSuriStart = null;
+                                        updateStatusFields(
+                                          'Selected $value rhythm: ${rhythmToSlots(value)} slots.',
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
+                                  ),
 
-                        buildToolbarButton(
-                          icon: Icons.folder,
-                          label: 'Exports',
-                          onPressed: openExportFolder,
-                          tooltip: 'Open export folder',
-                        ),
+                                  buildDropdownControl<String>(
+                                    label: 'Technique:',
+                                    value: selectedTechnique,
+                                    width: 320,
+                                    items: techniques
+                                        .map(buildTechniqueDropdownItem)
+                                        .toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
+                                      if (value == 'LEFT_HAND_HEADER') return;
+                                      if (value == 'RIGHT_HAND_HEADER') return;
 
-                        buildToolbarButton(
-                          icon: Icons.manage_search,
-                          label: 'Last Save',
-                          onPressed: revealLastSavedSongFile,
-                          tooltip: 'Show last saved song file',
-                        ),
+                                      if (getSelectedNoteIndex() >= 0) {
+                                        updateSelectedNote(technique: value);
+                                        return;
+                                      }
 
-                        buildToolbarButton(
-                          icon: Icons.find_in_page,
-                          label: 'Last Export',
-                          onPressed: revealLastExportedFile,
-                          tooltip: 'Show last exported file',
-                        ),
-                      ],
-                    ),
+                                      setState(() {
+                                        selectedTechnique = value;
+                                        selectedTool = EditorTool.write;
+                                        pendingSuriStart = null;
+                                        updateStatusFields(
+                                          'Selected technique: $value.',
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
+                                  ),
 
-                    buildToolbarSection(
-                      title: 'Help',
-                      children: [
-                        buildToolbarButton(
-                          icon: Icons.help_outline,
-                          label: 'Help',
-                          onPressed: showHelpDialog,
-                          tooltip: 'Help / Instructions',
-                        ),
+                                  buildDropdownControl<int>(
+                                    label: 'Repeat:',
+                                    value: selectedRepeatLength,
+                                    width: 210,
+                                    items: repeatLengthOptions.map((length) {
+                                      return DropdownMenuItem<int>(
+                                        value: length,
+                                        child: Text(
+                                          length == 1
+                                              ? '1-measure'
+                                              : '2-measure',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      if (value == null) return;
 
-                        buildToolbarButton(
-                          icon: Icons.history,
-                          label: 'Changes',
-                          onPressed: showChangelogDialog,
-                          tooltip: 'Version history',
-                        ),
+                                      setState(() {
+                                        selectedRepeatLength = value;
+                                        pendingSuriStart = null;
+                                        selectedNoteAnchor = null;
+                                        updateStatusFields(
+                                          'Selected ${value == 1 ? 'one-measure' : 'two-measure'} repeat.',
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
 
-                        buildToolbarButton(
-                          icon: Icons.bug_report,
-                          label: 'Error Report',
-                          onPressed: exportErrorReport,
-                          tooltip: 'Export local error log',
-                        ),
+                              buildToolbarSection(
+                                title: 'Notation Tools',
+                                children: [
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.edit,
+                                    label: 'Write',
+                                    isSelected: isWriteMode,
+                                    selectedColor: Colors.blue,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.write);
+                                    },
+                                    tooltip: 'Write note (Ctrl + 1)',
+                                  ),
 
-                        buildToolbarButton(
-                          icon: Icons.info_outline,
-                          label: 'About',
-                          onPressed: showAboutAppDialog,
-                          tooltip: 'About app',
-                        ),
-                      ],
-                    ),
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.delete,
+                                    label: 'Erase',
+                                    isSelected: isEraseMode,
+                                    selectedColor: Colors.red,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.erase);
+                                    },
+                                    tooltip: 'Smart erase (Ctrl + 2)',
+                                  ),
 
-                    buildToolbarSection(
-                      title: 'Status',
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 520),
-                          child: Text(
-                            statusMessage,
-                            style: TextStyle(
-                              color:
-                                  statusMessage.contains('Cannot') ||
-                                      statusMessage.contains('must') ||
-                                      statusMessage.contains('No note') ||
-                                      statusMessage.contains('failed') ||
-                                      statusMessage.contains('Nothing')
-                                  ? Colors.red
-                                  : Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.timeline,
+                                    label: 'Suri',
+                                    isSelected: isSuriMode,
+                                    selectedColor: Colors.green,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.suri);
+                                    },
+                                    tooltip: 'Suri slide mode (Ctrl + 3)',
+                                  ),
+
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.fiber_manual_record,
+                                    label: 'Rest',
+                                    isSelected: isRestMode,
+                                    selectedColor: Colors.purple,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.rest);
+                                    },
+                                    tooltip: 'Rest mode (Ctrl + 4)',
+                                  ),
+
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.repeat,
+                                    label: 'Repeat',
+                                    isSelected: isRepeatMode,
+                                    selectedColor: Colors.brown,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.repeat);
+                                    },
+                                    tooltip: 'Simile repeat mode (Ctrl + 5)',
+                                  ),
+
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.text_fields,
+                                    label: 'Lyric',
+                                    isSelected: isLyricMode,
+                                    selectedColor: Colors.teal,
+                                    onPressed: () {
+                                      selectToolFromShortcut(EditorTool.lyric);
+                                    },
+                                    tooltip: 'Lyric mode (Ctrl + 6)',
+                                  ),
+
+                                  buildSelectableToolbarButton(
+                                    icon: Icons.label,
+                                    label: 'Section',
+                                    isSelected: isSectionMode,
+                                    selectedColor: Colors.indigo,
+                                    onPressed: () {
+                                      selectToolFromShortcut(
+                                        EditorTool.section,
+                                      );
+                                    },
+                                    tooltip: 'Section label mode (Ctrl + 7)',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'File',
+                                children: [
+                                  buildToolbarButton(
+                                    icon: Icons.note_add,
+                                    label: 'New',
+                                    onPressed: newSong,
+                                    tooltip: 'Start a new song',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.save,
+                                    label: 'Save',
+                                    onPressed: saveSong,
+                                    tooltip:
+                                        'Save song to the local song library',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.folder_open,
+                                    label: 'Load',
+                                    onPressed: loadSong,
+                                    tooltip:
+                                        'Load song from the local song library',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.history,
+                                    label: 'Recent',
+                                    onPressed: showRecentFilesDialog,
+                                    tooltip: 'Open a recently used song file',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.save_as,
+                                    label: 'Save Copy',
+                                    onPressed: saveSongCopy,
+                                    tooltip:
+                                        'Save a JSON copy anywhere on your computer without changing the active library file',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.file_open,
+                                    label: 'Open File',
+                                    onPressed: importSongJsonFile,
+                                    tooltip:
+                                        'Open a song file from anywhere on your computer',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.restore_page,
+                                    label: 'Recover',
+                                    onPressed: recoverAutoBackup,
+                                    tooltip: 'Recover autosave backup',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.delete_sweep,
+                                    label: 'Clear',
+                                    onPressed: clearSong,
+                                    tooltip: 'Clear current song notation',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'Edit',
+                                children: [
+                                  buildToolbarButton(
+                                    icon: Icons.undo,
+                                    label: 'Undo',
+                                    onPressed: undoLastAction,
+                                    tooltip: 'Undo last action',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.redo,
+                                    label: 'Redo',
+                                    onPressed: redoLastAction,
+                                    tooltip: 'Redo last action',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'Export',
+                                children: [
+                                  buildToolbarButton(
+                                    icon: Icons.image,
+                                    label: 'PNG',
+                                    onPressed: exportSheetAsPng,
+                                    tooltip: 'Export sheet as PNG image',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.picture_as_pdf,
+                                    label: 'PDF',
+                                    onPressed: exportSheetAsPdf,
+                                    tooltip: 'Export sheet as PDF document',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'Folders',
+                                children: [
+                                  buildToolbarButton(
+                                    icon: Icons.library_music,
+                                    label: 'Songs',
+                                    onPressed: openSongFolder,
+                                    tooltip: 'Open song library folder',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.folder,
+                                    label: 'Exports',
+                                    onPressed: openExportFolder,
+                                    tooltip: 'Open export folder',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.manage_search,
+                                    label: 'Last Save',
+                                    onPressed: revealLastSavedSongFile,
+                                    tooltip: 'Show last saved song file',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.find_in_page,
+                                    label: 'Last Export',
+                                    onPressed: revealLastExportedFile,
+                                    tooltip: 'Show last exported file',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'Help',
+                                children: [
+                                  buildToolbarButton(
+                                    icon: Icons.help_outline,
+                                    label: 'Help',
+                                    onPressed: showHelpDialog,
+                                    tooltip: 'Help / Instructions',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.history,
+                                    label: 'Changes',
+                                    onPressed: showChangelogDialog,
+                                    tooltip: 'Version history',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.bug_report,
+                                    label: 'Error Report',
+                                    onPressed: exportErrorReport,
+                                    tooltip: 'Export local error log',
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.info_outline,
+                                    label: 'About',
+                                    onPressed: showAboutAppDialog,
+                                    tooltip: 'About app',
+                                  ),
+                                ],
+                              ),
+
+                              buildToolbarSection(
+                                title: 'Status',
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 520,
+                                    ),
+                                    child: Text(
+                                      statusMessage,
+                                      style: TextStyle(
+                                        color: getStatusColor(),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        hasUnsavedChanges
+                                            ? 'Unsaved changes'
+                                            : 'Saved',
+                                        style: TextStyle(
+                                          color: hasUnsavedChanges
+                                              ? Colors.orange
+                                              : Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        getCurrentFileStateText(),
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              hasUnsavedChanges ? 'Unsaved changes' : 'Saved',
-                              style: TextStyle(
-                                color: hasUnsavedChanges ? Colors.orange : Colors.green,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              getCurrentFileStateText(),
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+                  ),
 
                   Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    const int slotsPerMeasure = 16;
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const int slotsPerMeasure =
+                            SheetMetrics.slotsPerMeasure;
 
-                    final totalMeasures = selectedTotalMeasures;
-                    final currentSlotSpacing = getCurrentSlotSpacing();
+                        final totalMeasures = selectedTotalMeasures;
+                        final currentSlotSpacing = getCurrentSlotSpacing();
 
-                    final canvasWidth =
-                        leftMargin +
-                        totalMeasures * slotsPerMeasure * currentSlotSpacing +
-                        160;
+                        final canvasWidth =
+                            leftMargin +
+                            totalMeasures *
+                                slotsPerMeasure *
+                                currentSlotSpacing +
+                            160;
 
-                    final canvasHeight =
-                        constraints.maxHeight < 720 ? 720.0 : constraints.maxHeight;
+                        final canvasHeight = constraints.maxHeight < 720
+                            ? 720.0
+                            : constraints.maxHeight;
 
-                    return Scrollbar(
-                      controller: verticalScrollController,
-                      thumbVisibility: true,
-                      notificationPredicate: (notification) =>
-                          notification.metrics.axis == Axis.vertical,
-                      child: SingleChildScrollView(
-                        controller: verticalScrollController,
-                        child: Scrollbar(
-                          controller: horizontalScrollController,
+                        return Scrollbar(
+                          controller: verticalScrollController,
                           thumbVisibility: true,
                           notificationPredicate: (notification) =>
-                              notification.metrics.axis == Axis.horizontal,
+                              notification.metrics.axis == Axis.vertical,
                           child: SingleChildScrollView(
-                            controller: horizontalScrollController,
-                            scrollDirection: Axis.horizontal,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapDown: (details) {
-                                handleCanvasClick(details.localPosition);
-                              },
-                              child: RepaintBoundary(
-                                key: sheetExportKey,
-                                child: CustomPaint(
-                                  painter: ShamisenPainter(
-                                    notes: notes,
-                                    rests: rests,
-                                    suriSlides: suriSlides,
-                                    simileRepeats: simileRepeats,
-                                    lyricEntries: lyricEntries,
-                                    sectionLabels: sectionLabels,
-                                    pendingSuriStart: pendingSuriStart,
-                                    selectedNoteAnchor: selectedNoteAnchor,
-                                    selectedTool: selectedTool,
-                                    totalMeasures: totalMeasures,
-                                    songTitle: getSongTitle(),
-                                    selectedTuning: selectedTuning,
-                                    tempoBpm: getTempoBpm(),
-                                    slotSpacing: currentSlotSpacing,
-                                  ),
-                                  child: SizedBox(
-                                    width: canvasWidth,
-                                    height: canvasHeight,
+                            controller: verticalScrollController,
+                            child: Scrollbar(
+                              controller: horizontalScrollController,
+                              thumbVisibility: true,
+                              notificationPredicate: (notification) =>
+                                  notification.metrics.axis == Axis.horizontal,
+                              child: SingleChildScrollView(
+                                controller: horizontalScrollController,
+                                scrollDirection: Axis.horizontal,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTapDown: (details) {
+                                    handleCanvasClick(details.localPosition);
+                                  },
+                                  child: RepaintBoundary(
+                                    key: sheetExportKey,
+                                    child: CustomPaint(
+                                      painter: ShamisenPainter(
+                                        notes: notes,
+                                        rests: rests,
+                                        suriSlides: suriSlides,
+                                        simileRepeats: simileRepeats,
+                                        lyricEntries: lyricEntries,
+                                        sectionLabels: sectionLabels,
+                                        pendingSuriStart: pendingSuriStart,
+                                        selectedNoteAnchor: selectedNoteAnchor,
+                                        selectedTool: selectedTool,
+                                        totalMeasures: totalMeasures,
+                                        songTitle: getSongTitle(),
+                                        selectedTuning: selectedTuning,
+                                        tempoBpm: getTempoBpm(),
+                                        slotSpacing: currentSlotSpacing,
+                                      ),
+                                      child: SizedBox(
+                                        width: canvasWidth,
+                                        height: canvasHeight,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               );
             },
@@ -4558,14 +5308,14 @@ class ShamisenPainter extends CustomPainter {
     required this.slotSpacing,
   });
 
-  static const double leftMargin = 80;
-  static const double rightMargin = 40;
-  static const double topMargin = 280;
-  static const double stringSpacing = 80;
+  static const double leftMargin = SheetMetrics.leftMargin;
+  static const double rightMargin = SheetMetrics.rightMargin;
+  static const double topMargin = SheetMetrics.topMargin;
+  static const double stringSpacing = SheetMetrics.stringSpacing;
 
-  static const int slotsPerBeat = 4;
-  static const int beatsPerMeasure = 4;
-  static const int slotsPerMeasure = slotsPerBeat * beatsPerMeasure;
+  static const int slotsPerBeat = SheetMetrics.slotsPerBeat;
+  static const int beatsPerMeasure = SheetMetrics.beatsPerMeasure;
+  static const int slotsPerMeasure = SheetMetrics.slotsPerMeasure;
 
   static const double titleY = 32;
   static const double metadataY = 76;
@@ -4579,7 +5329,7 @@ class ShamisenPainter extends CustomPainter {
 
   static const double lyricRowYOffset = 110;
 
-  static const double tabFontSize = 28;
+  static const double tabFontSize = 30;
 
   static const double belowTechniqueFontSize = 20;
   static const double belowTechniqueVerticalOffset = 30;
@@ -4928,12 +5678,7 @@ class ShamisenPainter extends CustomPainter {
 
       final path = Path()
         ..moveTo(startX, arcY)
-        ..quadraticBezierTo(
-          (startX + endX) / 2,
-          arcY - arcHeight,
-          endX,
-          arcY,
-        );
+        ..quadraticBezierTo((startX + endX) / 2, arcY - arcHeight, endX, arcY);
 
       canvas.drawPath(path, slidePaint);
 
@@ -4968,12 +5713,19 @@ class ShamisenPainter extends CustomPainter {
     final x = leftMargin + anchor.slot * slotSpacing;
     final y = topMargin + (anchor.stringNumber - 1) * stringSpacing;
 
+    final fillPaint = Paint()
+      ..color = Colors.green.withAlpha(28)
+      ..style = PaintingStyle.fill;
+
     final highlightPaint = Paint()
       ..color = Colors.green
-      ..strokeWidth = 2
+      ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
-    canvas.drawCircle(Offset(x, y - 12), 18, highlightPaint);
+    final center = Offset(x, y - 12);
+
+    canvas.drawCircle(center, 18, fillPaint);
+    canvas.drawCircle(center, 18, highlightPaint);
   }
 
   void drawSelectedNoteHighlight(Canvas canvas) {
@@ -4983,6 +5735,10 @@ class ShamisenPainter extends CustomPainter {
     final x = leftMargin + selected.slot * slotSpacing;
     final y = topMargin + (selected.stringNumber - 1) * stringSpacing;
 
+    final fillPaint = Paint()
+      ..color = Colors.orange.withAlpha(28)
+      ..style = PaintingStyle.fill;
+
     final highlightPaint = Paint()
       ..color = Colors.orange
       ..strokeWidth = 3
@@ -4990,10 +5746,13 @@ class ShamisenPainter extends CustomPainter {
 
     final rect = Rect.fromCenter(center: Offset(x, y), width: 48, height: 58);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
-      highlightPaint,
+    final roundedRect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(8),
     );
+
+    canvas.drawRRect(roundedRect, fillPaint);
+    canvas.drawRRect(roundedRect, highlightPaint);
   }
 
   void drawSimileRepeats(Canvas canvas) {
