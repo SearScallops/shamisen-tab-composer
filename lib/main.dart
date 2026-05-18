@@ -7,6 +7,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n/app_localizations.dart';
 
 import 'package:path_provider/path_provider.dart';
 import 'package:file_selector/file_selector.dart';
@@ -212,15 +215,39 @@ String readableErrorMessage(Object error) {
   return error.toString();
 }
 
-class ShamisenTabApp extends StatelessWidget {
+class ShamisenTabApp extends StatefulWidget {
   const ShamisenTabApp({super.key});
+
+  @override
+  State<ShamisenTabApp> createState() => _ShamisenTabAppState();
+}
+
+class _ShamisenTabAppState extends State<ShamisenTabApp> {
+  Locale? selectedLocale;
+
+  void updateLocale(Locale? locale) {
+    setState(() {
+      selectedLocale = locale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: appFullTitle,
-      home: const EditorScreen(),
+      locale: selectedLocale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('ja')],
+      home: EditorScreen(
+        selectedLocale: selectedLocale,
+        onLocaleChanged: updateLocale,
+      ),
     );
   }
 }
@@ -565,7 +592,14 @@ class LocalErrorLogger {
 }
 
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({super.key});
+  final Locale? selectedLocale;
+  final ValueChanged<Locale?> onLocaleChanged;
+
+  const EditorScreen({
+    super.key,
+    required this.selectedLocale,
+    required this.onLocaleChanged,
+  });
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -804,6 +838,10 @@ class _EditorScreenState extends State<EditorScreen> {
     return removedCount;
   }
 
+  AppLocalizations get loc {
+    return AppLocalizations.of(context)!;
+  }
+
   String getSongTitle() {
     final title = titleController.text.trim();
 
@@ -836,10 +874,7 @@ class _EditorScreenState extends State<EditorScreen> {
         selectedZoom = 1.0;
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        updateStatusFields(
-          'Reset zoom to 100%.',
-          StatusLevel.info,
-        );
+        updateStatusFields(loc.statusResetZoom, StatusLevel.info);
       });
 
       scheduleAutoBackup();
@@ -854,9 +889,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (nextIndex == currentIndex) {
       setState(() {
         updateStatusFields(
-          direction < 0
-              ? 'Already at minimum zoom.'
-              : 'Already at maximum zoom.',
+          direction < 0 ? loc.statusMinimumZoom : loc.statusMaximumZoom,
           StatusLevel.warning,
         );
       });
@@ -870,7 +903,7 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
       updateStatusFields(
-        'Set zoom to ${(nextZoom * 100).round()}%.',
+        loc.statusSetZoom((nextZoom * 100).round()),
         StatusLevel.info,
       );
     });
@@ -1014,9 +1047,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       const encoder = JsonEncoder.withIndent('  ');
 
-      final data = {
-        'recentFiles': recentSongFilePaths.take(10).toList(),
-      };
+      final data = {'recentFiles': recentSongFilePaths.take(10).toList()};
 
       await recentFile.writeAsString(encoder.convert(data));
     } catch (error, stackTrace) {
@@ -1145,22 +1176,20 @@ class _EditorScreenState extends State<EditorScreen> {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Recover autosave backup?'),
-            content: const Text(
-              'This will replace the current sheet with the latest autosave backup. Use this only if you want to restore recent unsaved work.',
-            ),
+            title: Text(loc.recoverAutosaveTitle),
+            content: Text(loc.recoverAutosaveBody),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(dialogContext).pop(false);
                 },
-                child: const Text('Return'),
+                child: Text(loc.returnButton),
               ),
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(dialogContext).pop(true);
                 },
-                child: const Text('Recover Backup'),
+                child: Text(loc.recoverBackup),
               ),
             ],
           );
@@ -1170,7 +1199,10 @@ class _EditorScreenState extends State<EditorScreen> {
       if (shouldRecover != true) return;
       if (!mounted) return;
 
-      final backupLoaded = await loadSongFromFile(backupFile);
+      final backupLoaded = await loadSongFromFile(
+        backupFile,
+        rememberRecent: false,
+      );
 
       if (!backupLoaded) return;
       if (!mounted) return;
@@ -1280,10 +1312,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       setState(() {
-        updateStatusFields(
-          'Opened $label file location.',
-          StatusLevel.success,
-        );
+        updateStatusFields('Opened $label file location.', StatusLevel.success);
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -1345,10 +1374,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
 
       setState(() {
-        updateStatusFields(
-          'Opened $label folder.',
-          StatusLevel.success,
-        );
+        updateStatusFields('Opened $label folder.', StatusLevel.success);
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -1446,17 +1472,17 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text('$exportType export complete'),
+          title: Text(loc.exportCompleteTitle(exportType)),
           content: SizedBox(
             width: 520,
-            child: SelectableText('Saved to:\n${exportFile.path}'),
+            child: SelectableText(loc.savedToPath(exportFile.path)),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
             ElevatedButton.icon(
               onPressed: () async {
@@ -1468,7 +1494,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 );
               },
               icon: const Icon(Icons.folder_open),
-              label: const Text('Open File Location'),
+              label: Text(loc.openFileLocation),
             ),
           ],
         );
@@ -1483,17 +1509,17 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Save Copy complete'),
+          title: Text(loc.saveCopyCompleteTitle),
           content: SizedBox(
             width: 520,
-            child: SelectableText('Saved copy to:\n${savedFile.path}'),
+            child: SelectableText(loc.savedCopyToPath(savedFile.path)),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
             ElevatedButton.icon(
               onPressed: () async {
@@ -1505,7 +1531,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 );
               },
               icon: const Icon(Icons.folder_open),
-              label: const Text('Open File Location'),
+              label: Text(loc.openFileLocation),
             ),
           ],
         );
@@ -1575,10 +1601,7 @@ class _EditorScreenState extends State<EditorScreen> {
           margin: const pw.EdgeInsets.all(24),
           build: (context) {
             return pw.Center(
-              child: pw.Image(
-                sheetImage,
-                fit: pw.BoxFit.contain,
-              ),
+              child: pw.Image(sheetImage, fit: pw.BoxFit.contain),
             );
           },
         ),
@@ -1634,14 +1657,14 @@ class _EditorScreenState extends State<EditorScreen> {
   String getCurrentFileStateText() {
     if (currentSongLibraryFilePath != null) {
       final displayName = displayNameFromPath(currentSongLibraryFilePath!);
-      return 'Library file: $displayName';
+      return loc.libraryFile(displayName);
     }
 
     if (hasUnsavedChanges) {
-      return 'Not saved to library';
+      return loc.notSavedToLibrary;
     }
 
-    return 'No library file selected';
+    return loc.noLibraryFileSelected;
   }
 
   String displayNameFromFile(File file) {
@@ -1803,23 +1826,20 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Overwrite saved song?'),
-          content: Text(
-            'A saved song named "$songTitle" already exists.\n\n'
-            'Do you want to replace it?',
-          ),
+          title: Text(loc.overwriteSavedSongTitle),
+          content: Text(loc.overwriteSavedSongBody(songTitle)),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('Overwrite'),
+              child: Text(loc.overwrite),
             ),
           ],
         );
@@ -1846,7 +1866,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
         setState(() {
           updateStatusFields(
-            'Save cancelled to avoid overwriting "$songTitle".',
+            loc.statusSaveCancelledOverwrite(songTitle),
             StatusLevel.warning,
           );
         });
@@ -1866,14 +1886,10 @@ class _EditorScreenState extends State<EditorScreen> {
         lastSavedSongFilePath = file.path;
         currentSongLibraryFilePath = file.path;
         hasUnsavedChanges = false;
-        updateStatusFields(
-          'Saved "$songTitle" successfully.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusSavedSong(songTitle), StatusLevel.success);
       });
 
       await rememberRecentSongFile(file.path);
-
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
         source: 'Save song failed',
@@ -1885,7 +1901,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Save failed: ${readableErrorMessage(error)}',
+          loc.statusSaveFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -1910,7 +1926,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          updateStatusFields('Save Copy cancelled.', StatusLevel.warning);
+          updateStatusFields(loc.statusSaveCopyCancelled, StatusLevel.warning);
         });
         return;
       }
@@ -1926,16 +1942,13 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        updateStatusFields(
-          'Saved song copy successfully. Your active library file was not changed.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusSaveCopySuccess, StatusLevel.success);
       });
 
       await showSaveCopyCompleteDialog(savedFile: exportFile);
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
-        source: 'Save Copy failed',
+        source: loc.statusSaveCopyFailed(readableErrorMessage(error)),
         error: error,
         stackTrace: stackTrace,
       );
@@ -1944,7 +1957,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Save Copy failed: ${readableErrorMessage(error)}',
+          loc.statusSaveCopyFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -1971,7 +1984,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (selectedFile == null) {
         setState(() {
-          updateStatusFields('Open File cancelled.', StatusLevel.warning);
+          updateStatusFields(loc.statusOpenFileCancelled, StatusLevel.warning);
         });
         return;
       }
@@ -1980,10 +1993,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (!await importedFile.exists()) {
         setState(() {
-          updateStatusFields(
-            'Open File failed: selected file does not exist.',
-            StatusLevel.error,
-          );
+          updateStatusFields(loc.statusOpenFileMissing, StatusLevel.error);
         });
         return;
       }
@@ -1997,10 +2007,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         hasUnsavedChanges = true;
-        updateStatusFields(
-          'Opened song file successfully. Use Save to add it to your song library.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusOpenFileSuccess, StatusLevel.success);
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -2013,7 +2020,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Open File failed: ${readableErrorMessage(error)}',
+          loc.statusOpenFileFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -2026,7 +2033,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final files = songDirectory.listSync().whereType<File>().where((file) {
       final fileName = file.uri.pathSegments.last.toLowerCase();
 
-      return fileName.endsWith('.json') && fileName != '_autosave_backup.json';
+      return fileName.endsWith('.json') && !fileName.startsWith('_');
     }).toList();
 
     files.sort((a, b) {
@@ -2101,7 +2108,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (savedFiles.isEmpty) {
         setState(() {
-          updateStatusFields('No saved songs found.', StatusLevel.warning);
+          updateStatusFields(loc.noSavedSongsFound, StatusLevel.warning);
         });
         return;
       }
@@ -2114,12 +2121,12 @@ class _EditorScreenState extends State<EditorScreen> {
           return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('Load Song'),
+                title: Text(loc.loadSongTitle),
                 content: SizedBox(
                   width: 460,
                   height: 380,
                   child: savedFiles.isEmpty
-                      ? const Center(child: Text('No saved songs found.'))
+                      ? Center(child: Text(loc.noSavedSongsFound))
                       : ListView.builder(
                           itemCount: savedFiles.length,
                           itemBuilder: (context, index) {
@@ -2130,7 +2137,9 @@ class _EditorScreenState extends State<EditorScreen> {
                             return ListTile(
                               leading: const Icon(Icons.music_note),
                               title: Text(displayName),
-                              subtitle: Text('Modified: $modified'),
+                              subtitle: Text(
+                                loc.modifiedDate(modified.toString()),
+                              ),
                               onTap: () {
                                 Navigator.of(dialogContext).pop(file);
                               },
@@ -2139,17 +2148,21 @@ class _EditorScreenState extends State<EditorScreen> {
                                   Icons.delete_forever,
                                   color: Colors.red,
                                 ),
-                                tooltip: 'Delete saved song',
+                                tooltip: loc.deleteSavedSongTooltip,
                                 onPressed: () async {
                                   final shouldDelete = await showDialog<bool>(
                                     context: dialogContext,
                                     builder: (confirmContext) {
                                       return AlertDialog(
-                                        title: const Text('Delete saved song?'),
+                                        title: Text(loc.deleteSavedSongTitle),
                                         content: Text(
                                           isCurrentLibrarySongFile(file)
-                                              ? 'Delete "$displayName"? This is the song currently open in the editor.\n\nThe sheet will stay open, but it will become unsaved.'
-                                              : 'Delete "$displayName"? This cannot be undone.',
+                                              ? loc.deleteCurrentSongBody(
+                                                  displayName,
+                                                )
+                                              : loc.deleteSavedSongBody(
+                                                  displayName,
+                                                ),
                                         ),
                                         actions: [
                                           TextButton(
@@ -2158,7 +2171,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                 confirmContext,
                                               ).pop(false);
                                             },
-                                            child: const Text('Cancel'),
+                                            child: Text(loc.cancel),
                                           ),
                                           ElevatedButton(
                                             onPressed: () {
@@ -2166,7 +2179,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                                 confirmContext,
                                               ).pop(true);
                                             },
-                                            child: const Text('Delete'),
+                                            child: Text(loc.delete),
                                           ),
                                         ],
                                       );
@@ -2194,7 +2207,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     onPressed: () {
                       Navigator.of(dialogContext).pop(null);
                     },
-                    child: const Text('Return'),
+                    child: Text(loc.returnButton),
                   ),
                 ],
               );
@@ -2222,7 +2235,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Load failed: ${readableErrorMessage(error)}',
+          loc.statusLoadFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -2239,10 +2252,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (recentSongFilePaths.isEmpty) {
       setState(() {
-        updateStatusFields(
-          'No recent files yet.',
-          StatusLevel.warning,
-        );
+        updateStatusFields(loc.noRecentFiles, StatusLevel.warning);
       });
       return;
     }
@@ -2253,14 +2263,12 @@ class _EditorScreenState extends State<EditorScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Recent Files'),
+              title: Text(loc.recentFilesTitle),
               content: SizedBox(
                 width: 560,
                 height: 360,
                 child: recentSongFilePaths.isEmpty
-                    ? const Center(
-                        child: Text('No recent files.'),
-                      )
+                    ? Center(child: Text(loc.noRecentFiles))
                     : ListView.builder(
                         itemCount: recentSongFilePaths.length,
                         itemBuilder: (context, index) {
@@ -2280,7 +2288,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             },
                             trailing: IconButton(
                               icon: const Icon(Icons.close),
-                              tooltip: 'Remove from recent files',
+                              tooltip: loc.removeFromRecentFiles,
                               onPressed: () async {
                                 await forgetRecentSongFile(path);
 
@@ -2296,7 +2304,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   onPressed: () {
                     Navigator.of(dialogContext).pop(null);
                   },
-                  child: const Text('Return'),
+                  child: Text(loc.returnButton),
                 ),
               ],
             );
@@ -2324,7 +2332,13 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    final loadedSuccessfully = await loadSongFromFile(selectedFile);
+    final songDirectory = await getSongDirectory();
+    final isLibraryRecentFile = selectedFile.parent.path == songDirectory.path;
+
+    final loadedSuccessfully = await loadSongFromFile(
+      selectedFile,
+      isLibraryFile: isLibraryRecentFile,
+    );
 
     if (!loadedSuccessfully) return;
 
@@ -2333,15 +2347,21 @@ class _EditorScreenState extends State<EditorScreen> {
     if (!mounted) return;
 
     setState(() {
-      hasUnsavedChanges = true;
+      hasUnsavedChanges = !isLibraryRecentFile;
       updateStatusFields(
-        'Opened recent file successfully. Use Save to add it to your song library.',
+        isLibraryRecentFile
+            ? loc.statusLoadedSong(displayNameFromFile(selectedFile))
+            : loc.statusOpenFileSuccess,
         StatusLevel.success,
       );
     });
   }
 
-  Future<bool> loadSongFromFile(File file, {bool isLibraryFile = false}) async {
+  Future<bool> loadSongFromFile(
+    File file, {
+    bool isLibraryFile = false,
+    bool rememberRecent = true,
+  }) async {
     try {
       if (!await file.exists()) {
         if (!mounted) return false;
@@ -2549,13 +2569,14 @@ class _EditorScreenState extends State<EditorScreen> {
         }
 
         updateStatusFields(
-          'Loaded "$loadedTitle" successfully.',
+          loc.statusLoadedSong(loadedTitle),
           StatusLevel.success,
         );
       });
 
+    if (rememberRecent) {
       await rememberRecentSongFile(file.path);
-
+    }
       return true;
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -2568,7 +2589,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Load failed: ${readableErrorMessage(error)}',
+          loc.statusLoadFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -2586,28 +2607,26 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Unsaved changes'),
-          content: Text(
-            'You have unsaved changes. What do you want to do before $actionName?',
-          ),
+          title: Text(loc.unsavedChangesTitle),
+          content: Text(loc.unsavedChangesBody(actionName)),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop('cancel');
               },
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop('continue');
               },
-              child: const Text('Continue Without Saving'),
+              child: Text(loc.continueWithoutSaving),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop('save');
               },
-              child: const Text('Save First'),
+              child: Text(loc.saveFirst),
             ),
           ],
         );
@@ -2637,22 +2656,20 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Start a new song?'),
-          content: const Text(
-            'This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom.',
-          ),
+          title: Text(loc.startNewSongTitle),
+          content: Text(loc.startNewSongBody),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('New Song'),
+              child: Text(loc.newSong),
             ),
           ],
         );
@@ -2693,7 +2710,7 @@ class _EditorScreenState extends State<EditorScreen> {
       lastExportedFilePath = null;
 
       hasUnsavedChanges = true;
-      updateStatusFields('Started new song.', StatusLevel.success);
+      updateStatusFields(loc.statusStartedNewSong, StatusLevel.success);
     });
   }
 
@@ -2731,7 +2748,7 @@ class _EditorScreenState extends State<EditorScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
           ],
         );
@@ -2791,7 +2808,7 @@ class _EditorScreenState extends State<EditorScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
           ],
         );
@@ -2873,7 +2890,7 @@ class _EditorScreenState extends State<EditorScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Return'),
+              child: Text(loc.returnButton),
             ),
           ],
         );
@@ -2949,7 +2966,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void undoLastAction() {
     if (undoStack.isEmpty) {
       setState(() {
-        updateStatusFields('Nothing to undo.', StatusLevel.warning);
+        updateStatusFields(loc.statusNothingToUndo, StatusLevel.warning);
       });
       return;
     }
@@ -2964,7 +2981,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       restoreSongSnapshot(previousSnapshot);
       hasUnsavedChanges = true;
-      updateStatusFields('Undid last action.', StatusLevel.info);
+      updateStatusFields(loc.statusUndidLastAction, StatusLevel.info);
     });
 
     scheduleAutoBackup();
@@ -2973,7 +2990,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void redoLastAction() {
     if (redoStack.isEmpty) {
       setState(() {
-        updateStatusFields('Nothing to redo.', StatusLevel.warning);
+        updateStatusFields(loc.statusNothingToRedo, StatusLevel.warning);
       });
       return;
     }
@@ -2988,7 +3005,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       restoreSongSnapshot(nextSnapshot);
       hasUnsavedChanges = true;
-      updateStatusFields('Redid last action.', StatusLevel.info);
+      updateStatusFields(loc.statusRedidLastAction, StatusLevel.info);
     });
 
     scheduleAutoBackup();
@@ -2998,7 +3015,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
-      updateStatusFields('Cleared selection.', StatusLevel.info);
+      updateStatusFields(loc.statusClearedSelection, StatusLevel.info);
     });
   }
 
@@ -3073,22 +3090,20 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Clear current song?'),
-          content: const Text(
-            'This will remove all notes, rests, Suri slides, lyrics, repeats, and section labels. Song settings will stay the same.',
-          ),
+          title: Text(loc.clearCurrentSongTitle),
+          content: Text(loc.clearCurrentSongBody),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('Clear Song'),
+              child: Text(loc.clear),
             ),
           ],
         );
@@ -3112,7 +3127,7 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedNoteAnchor = null;
 
       hasUnsavedChanges = true;
-      updateStatusFields('Cleared song.', StatusLevel.success);
+      updateStatusFields(loc.statusClearedSong, StatusLevel.success);
     });
   }
 
@@ -3230,7 +3245,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (slot < 0 || slot >= totalSlots) {
       setState(() {
         updateStatusFields(
-          'Click inside the song measure area.',
+          loc.statusClickInsideMeasureArea,
           StatusLevel.warning,
         );
       });
@@ -3242,7 +3257,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (existingIndex < 0 && !slotHasNoteOrRestStart(slot)) {
       setState(() {
         updateStatusFields(
-          'Place a note or rest first, then add lyrics under it.',
+          loc.statusPlaceNoteOrRestBeforeLyric,
           StatusLevel.warning,
         );
       });
@@ -3259,15 +3274,15 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Lyric'),
+          title: Text(loc.lyricDialogTitle),
           content: TextFormField(
             initialValue: existingText,
             autofocus: true,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Lyric text',
-              hintText: 'Example: sakura / さくら / 桜',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: loc.lyricTextLabel,
+              hintText: loc.lyricTextHint,
+              border: const OutlineInputBorder(),
             ),
             onChanged: (value) {
               pendingLyricText = value;
@@ -3281,19 +3296,19 @@ class _EditorScreenState extends State<EditorScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(null);
               },
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop('');
               },
-              child: const Text('Delete'),
+              child: Text(loc.delete),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(pendingLyricText);
               },
-              child: const Text('Save'),
+              child: Text(loc.save),
             ),
           ],
         );
@@ -3307,7 +3322,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (trimmedText.isEmpty && existingIndex < 0) {
       setState(() {
-        updateStatusFields('No lyric added.', StatusLevel.warning);
+        updateStatusFields(loc.statusNoLyricAdded, StatusLevel.warning);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
       });
@@ -3319,10 +3334,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       if (trimmedText.isEmpty) {
         lyricEntries.removeAt(existingIndex);
-        updateStatusFields(
-          'Deleted lyric.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusDeletedLyric, StatusLevel.success);
 
         pendingSuriStart = null;
         selectedNoteAnchor = null;
@@ -3333,10 +3345,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (existingIndex >= 0) {
         lyricEntries[existingIndex] = newLyric;
-        updateStatusFields('Updated lyric.', StatusLevel.success);
+        updateStatusFields(loc.statusUpdatedLyric, StatusLevel.success);
       } else {
         lyricEntries.add(newLyric);
-        updateStatusFields('Added lyric under note/rest.', StatusLevel.success);
+        updateStatusFields(loc.statusAddedLyric, StatusLevel.success);
       }
 
       pendingSuriStart = null;
@@ -3356,7 +3368,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (measureIndex < 0 || measureIndex >= selectedTotalMeasures) {
       setState(() {
         updateStatusFields(
-          'Click inside the song measure area.',
+          loc.statusClickInsideMeasureArea,
           StatusLevel.warning,
         );
       });
@@ -3374,15 +3386,15 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Section label for measure ${measureIndex + 1}'),
+          title: Text(loc.sectionDialogTitle(measureIndex + 1)),
           content: TextFormField(
             initialValue: existingText,
             autofocus: true,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Section label',
-              hintText: 'Example: Intro / Verse / Chorus',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: loc.sectionLabelText,
+              hintText: loc.sectionLabelHint,
+              border: const OutlineInputBorder(),
             ),
             onChanged: (value) {
               pendingSectionText = value;
@@ -3396,19 +3408,19 @@ class _EditorScreenState extends State<EditorScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(null);
               },
-              child: const Text('Cancel'),
+              child: Text(loc.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop('');
               },
-              child: const Text('Delete'),
+              child: Text(loc.delete),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(pendingSectionText);
               },
-              child: const Text('Save'),
+              child: Text(loc.save),
             ),
           ],
         );
@@ -3422,7 +3434,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (trimmedText.isEmpty && existingIndex < 0) {
       setState(() {
-        updateStatusFields('No section label added.', StatusLevel.warning);
+        updateStatusFields(loc.statusNoSectionLabelAdded, StatusLevel.warning);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
       });
@@ -3434,7 +3446,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       if (trimmedText.isEmpty) {
         sectionLabels.removeAt(existingIndex);
-        updateStatusFields('Deleted section label.', StatusLevel.success);
+        updateStatusFields(loc.statusDeletedSectionLabel, StatusLevel.success);
 
         pendingSuriStart = null;
         selectedNoteAnchor = null;
@@ -3448,10 +3460,10 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (existingIndex >= 0) {
         sectionLabels[existingIndex] = newLabel;
-        updateStatusFields('Updated section label.', StatusLevel.success);
+        updateStatusFields(loc.statusUpdatedSectionLabel, StatusLevel.success);
       } else {
         sectionLabels.add(newLabel);
-        updateStatusFields('Added section label.', StatusLevel.success);
+        updateStatusFields(loc.statusAddedSectionLabel, StatusLevel.success);
       }
 
       pendingSuriStart = null;
@@ -3606,7 +3618,6 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     for (final rest in rests) {
-      if (rest.stringNumber != oldNote.stringNumber) continue;
 
       final overlaps = notesOverlap(
         startA: oldNote.slot,
@@ -3919,7 +3930,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (measureIndex < 0 || measureIndex >= selectedTotalMeasures) {
       setState(() {
         updateStatusFields(
-          'Click inside the song measure area.',
+          loc.statusClickInsideMeasureArea,
           StatusLevel.warning,
         );
       });
@@ -4271,7 +4282,7 @@ class _EditorScreenState extends State<EditorScreen> {
           lyricEntries.removeAt(lyricIndex);
           pendingSuriStart = null;
           selectedNoteAnchor = null;
-          updateStatusFields('Deleted lyric.', StatusLevel.success);
+          updateStatusFields(loc.statusDeletedLyric, StatusLevel.success);
         });
         return;
       }
@@ -4324,7 +4335,7 @@ class _EditorScreenState extends State<EditorScreen> {
         sectionLabels.removeAt(sectionIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        updateStatusFields('Deleted section label.', StatusLevel.success);
+        updateStatusFields(loc.statusDeletedSectionLabel, StatusLevel.success);
       });
       return;
     }
@@ -4547,7 +4558,7 @@ class _EditorScreenState extends State<EditorScreen> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          appBar: AppBar(title: const Text(appFullTitle)),
+          appBar: AppBar(title: Text(loc.appTitle)),
           body: LayoutBuilder(
             builder: (context, bodyConstraints) {
               final toolbarMaxHeight = (bodyConstraints.maxHeight * 0.38)
@@ -4573,23 +4584,61 @@ class _EditorScreenState extends State<EditorScreen> {
                             crossAxisAlignment: WrapCrossAlignment.start,
                             children: [
                               buildToolbarSection(
-                                title: 'Song Settings',
+                                title: loc.language,
+                                children: [
+                                  buildDropdownControl<Locale?>(
+                                    label: '${loc.language}:',
+                                    value: widget.selectedLocale,
+                                    width: 220,
+                                    items: [
+                                      DropdownMenuItem<Locale?>(
+                                        value: null,
+                                        child: Text(loc.systemDefault),
+                                      ),
+                                      DropdownMenuItem<Locale?>(
+                                        value: const Locale('en'),
+                                        child: Text(loc.english),
+                                      ),
+                                      DropdownMenuItem<Locale?>(
+                                        value: const Locale('ja'),
+                                        child: Text(loc.japanese),
+                                      ),
+                                    ],
+                                    onChanged: (value) {
+                                      widget.onLocaleChanged(value);
+
+                                      setState(() {
+                                        updateStatusFields(
+                                          value == null
+                                              ? loc.statusLanguageSystem
+                                              : value.languageCode == 'ja'
+                                              ? loc.statusLanguageJapanese
+                                              : loc.statusLanguageEnglish,
+                                          StatusLevel.info,
+                                        );
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              buildToolbarSection(
+                                title: loc.songSettings,
                                 children: [
                                   SizedBox(
                                     width: 260,
                                     child: TextField(
                                       controller: titleController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Title',
+                                      decoration: InputDecoration(
+                                        labelText: loc.title,
                                         isDense: true,
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                       onChanged: (_) {
                                         scheduleAutoBackup();
 
                                         setState(() {
                                           updateStatusFields(
-                                            'Updated song title.',
+                                            loc.statusUpdatedTitle,
                                             StatusLevel.info,
                                           );
                                         });
@@ -4598,7 +4647,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildDropdownControl<String>(
-                                    label: 'Tuning:',
+                                    label: '${loc.tuning}:',
                                     value: selectedTuning,
                                     width: 260,
                                     items: tunings.map((tuning) {
@@ -4618,7 +4667,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                       setState(() {
                                         selectedTuning = value;
                                         updateStatusFields(
-                                          'Selected tuning: $value.',
+                                          loc.statusSelectedTuning(value),
                                           StatusLevel.info,
                                         );
                                       });
@@ -4630,10 +4679,10 @@ class _EditorScreenState extends State<EditorScreen> {
                                     child: TextField(
                                       controller: tempoController,
                                       keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(
-                                        labelText: 'BPM',
+                                      decoration: InputDecoration(
+                                        labelText: loc.bpm,
                                         isDense: true,
-                                        border: OutlineInputBorder(),
+                                        border: const OutlineInputBorder(),
                                       ),
                                       onChanged: (value) {
                                         scheduleAutoBackup();
@@ -4646,12 +4695,14 @@ class _EditorScreenState extends State<EditorScreen> {
                                           if (parsedTempo == null ||
                                               parsedTempo <= 0) {
                                             updateStatusFields(
-                                              'Tempo should be a positive number.',
+                                              loc.statusTempoPositiveNumber,
                                               StatusLevel.warning,
                                             );
                                           } else {
                                             updateStatusFields(
-                                              'Updated tempo to $parsedTempo BPM.',
+                                              loc.statusUpdatedTempo(
+                                                parsedTempo,
+                                              ),
                                               StatusLevel.info,
                                             );
                                           }
@@ -4661,7 +4712,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildDropdownControl<int>(
-                                    label: 'Measures:',
+                                    label: '${loc.measures}:',
                                     value: selectedTotalMeasures,
                                     width: 160,
                                     items: measureOptions.map((measureCount) {
@@ -4692,12 +4743,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
                                         if (removedCount > 0) {
                                           updateStatusFields(
-                                            'Set song length to $value measures. Removed $removedCount out-of-range item${removedCount == 1 ? '' : 's'}.',
+                                            loc.statusSetMeasuresRemovedItems(
+                                              value,
+                                              removedCount,
+                                            ),
                                             StatusLevel.warning,
                                           );
                                         } else {
                                           updateStatusFields(
-                                            'Set song length to $value measures.',
+                                            loc.statusSetMeasures(value),
                                             StatusLevel.info,
                                           );
                                         }
@@ -4710,19 +4764,20 @@ class _EditorScreenState extends State<EditorScreen> {
                                     children: [
                                       buildToolbarButton(
                                         icon: Icons.remove,
-                                        label: 'Zoom -',
+                                        label: loc.zoomOutButton,
                                         onPressed: () {
                                           changeZoomByStep(-1);
                                         },
-                                        tooltip: 'Zoom out',
+                                        tooltip: loc.tooltipZoomOut,
                                       ),
                                       const SizedBox(width: 8),
                                       buildDropdownControl<double>(
-                                        label: 'Zoom:',
+                                        label: '${loc.zoom}:',
                                         value: selectedZoom,
                                         width: 160,
                                         items: zoomOptions.map((zoomValue) {
-                                          final zoomPercent = (zoomValue * 100).round();
+                                          final zoomPercent = (zoomValue * 100)
+                                              .round();
 
                                           return DropdownMenuItem<double>(
                                             value: zoomValue,
@@ -4737,7 +4792,9 @@ class _EditorScreenState extends State<EditorScreen> {
                                             pendingSuriStart = null;
                                             selectedNoteAnchor = null;
                                             updateStatusFields(
-                                              'Set zoom to ${(value * 100).round()}%.',
+                                              loc.statusSetZoom(
+                                                (value * 100).round(),
+                                              ),
                                               StatusLevel.info,
                                             );
                                           });
@@ -4748,11 +4805,11 @@ class _EditorScreenState extends State<EditorScreen> {
                                       const SizedBox(width: 8),
                                       buildToolbarButton(
                                         icon: Icons.add,
-                                        label: 'Zoom +',
+                                        label: loc.zoomInButton,
                                         onPressed: () {
                                           changeZoomByStep(1);
                                         },
-                                        tooltip: 'Zoom in',
+                                        tooltip: loc.tooltipZoomIn,
                                       ),
                                     ],
                                   ),
@@ -4760,10 +4817,10 @@ class _EditorScreenState extends State<EditorScreen> {
                               ),
 
                               buildToolbarSection(
-                                title: 'Note Input',
+                                title: loc.noteInput,
                                 children: [
                                   buildDropdownControl<String>(
-                                    label: 'Tab Number:',
+                                    label: '${loc.tabNumber}:',
                                     value: selectedTabNumber,
                                     width: 190,
                                     items: shamisenTabNumbers.map((tabNumber) {
@@ -4785,7 +4842,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                         selectedTool = EditorTool.write;
                                         pendingSuriStart = null;
                                         updateStatusFields(
-                                          'Selected tab number $value.',
+                                          loc.statusSelectedTabNumber(value),
                                           StatusLevel.info,
                                         );
                                       });
@@ -4793,7 +4850,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildDropdownControl<String>(
-                                    label: 'Rhythm:',
+                                    label: '${loc.rhythm}:',
                                     value: selectedRhythm,
                                     width: 230,
                                     items: rhythms.map((rhythm) {
@@ -4818,7 +4875,10 @@ class _EditorScreenState extends State<EditorScreen> {
                                         selectedTool = EditorTool.write;
                                         pendingSuriStart = null;
                                         updateStatusFields(
-                                          'Selected $value rhythm: ${rhythmToSlots(value)} slots.',
+                                          loc.statusSelectedRhythm(
+                                            value,
+                                            rhythmToSlots(value),
+                                          ),
                                           StatusLevel.info,
                                         );
                                       });
@@ -4826,7 +4886,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildDropdownControl<String>(
-                                    label: 'Technique:',
+                                    label: '${loc.technique}:',
                                     value: selectedTechnique,
                                     width: 320,
                                     items: techniques
@@ -4847,7 +4907,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                         selectedTool = EditorTool.write;
                                         pendingSuriStart = null;
                                         updateStatusFields(
-                                          'Selected technique: $value.',
+                                          loc.statusSelectedTechnique(value),
                                           StatusLevel.info,
                                         );
                                       });
@@ -4855,7 +4915,7 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildDropdownControl<int>(
-                                    label: 'Repeat:',
+                                    label: '${loc.repeat}:',
                                     value: selectedRepeatLength,
                                     width: 210,
                                     items: repeatLengthOptions.map((length) {
@@ -4877,7 +4937,11 @@ class _EditorScreenState extends State<EditorScreen> {
                                         pendingSuriStart = null;
                                         selectedNoteAnchor = null;
                                         updateStatusFields(
-                                          'Selected ${value == 1 ? 'one-measure' : 'two-measure'} repeat.',
+                                          loc.statusSelectedRepeat(
+                                            value == 1
+                                                ? loc.oneMeasure
+                                                : loc.twoMeasure,
+                                          ),
                                           StatusLevel.info,
                                         );
                                       });
@@ -4887,77 +4951,77 @@ class _EditorScreenState extends State<EditorScreen> {
                               ),
 
                               buildToolbarSection(
-                                title: 'Notation Tools',
+                                title: loc.notationTools,
                                 children: [
                                   buildSelectableToolbarButton(
                                     icon: Icons.edit,
-                                    label: 'Write',
+                                    label: loc.write,
                                     isSelected: isWriteMode,
                                     selectedColor: Colors.blue,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.write);
                                     },
-                                    tooltip: 'Write note (Ctrl + 1)',
+                                    tooltip: loc.tooltipWrite,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.delete,
-                                    label: 'Erase',
+                                    label: loc.erase,
                                     isSelected: isEraseMode,
                                     selectedColor: Colors.red,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.erase);
                                     },
-                                    tooltip: 'Smart erase (Ctrl + 2)',
+                                    tooltip: loc.tooltipErase,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.timeline,
-                                    label: 'Suri',
+                                    label: loc.suri,
                                     isSelected: isSuriMode,
                                     selectedColor: Colors.green,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.suri);
                                     },
-                                    tooltip: 'Suri slide mode (Ctrl + 3)',
+                                    tooltip: loc.tooltipSuri,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.fiber_manual_record,
-                                    label: 'Rest',
+                                    label: loc.rest,
                                     isSelected: isRestMode,
                                     selectedColor: Colors.purple,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.rest);
                                     },
-                                    tooltip: 'Rest mode (Ctrl + 4)',
+                                    tooltip: loc.tooltipRest,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.repeat,
-                                    label: 'Repeat',
+                                    label: loc.repeat,
                                     isSelected: isRepeatMode,
                                     selectedColor: Colors.brown,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.repeat);
                                     },
-                                    tooltip: 'Simile repeat mode (Ctrl + 5)',
+                                    tooltip: loc.tooltipRepeat,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.text_fields,
-                                    label: 'Lyric',
+                                    label: loc.lyric,
                                     isSelected: isLyricMode,
                                     selectedColor: Colors.teal,
                                     onPressed: () {
                                       selectToolFromShortcut(EditorTool.lyric);
                                     },
-                                    tooltip: 'Lyric mode (Ctrl + 6)',
+                                    tooltip: loc.tooltipLyric,
                                   ),
 
                                   buildSelectableToolbarButton(
                                     icon: Icons.label,
-                                    label: 'Section',
+                                    label: loc.section,
                                     isSelected: isSectionMode,
                                     selectedColor: Colors.indigo,
                                     onPressed: () {
@@ -4965,182 +5029,178 @@ class _EditorScreenState extends State<EditorScreen> {
                                         EditorTool.section,
                                       );
                                     },
-                                    tooltip: 'Section label mode (Ctrl + 7)',
+                                    tooltip: loc.tooltipSection,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'File',
+                                title: loc.file,
                                 children: [
                                   buildToolbarButton(
                                     icon: Icons.note_add,
-                                    label: 'New',
+                                    label: loc.newSong,
                                     onPressed: newSong,
-                                    tooltip: 'Start a new song',
+                                    tooltip: loc.tooltipNewSong,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.save,
-                                    label: 'Save',
+                                    label: loc.save,
                                     onPressed: saveSong,
-                                    tooltip:
-                                        'Save song to the local song library',
+                                    tooltip: loc.tooltipSave,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.folder_open,
-                                    label: 'Load',
+                                    label: loc.load,
                                     onPressed: loadSong,
-                                    tooltip:
-                                        'Load song from the local song library',
+                                    tooltip: loc.tooltipLoad,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.history,
-                                    label: 'Recent',
+                                    label: loc.recent,
                                     onPressed: showRecentFilesDialog,
-                                    tooltip: 'Open a recently used song file',
+                                    tooltip: loc.tooltipRecent,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.save_as,
-                                    label: 'Save Copy',
+                                    label: loc.saveCopy,
                                     onPressed: saveSongCopy,
-                                    tooltip:
-                                        'Save a JSON copy anywhere on your computer without changing the active library file',
+                                    tooltip: loc.tooltipSaveCopy,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.file_open,
-                                    label: 'Open File',
+                                    label: loc.openFile,
                                     onPressed: importSongJsonFile,
-                                    tooltip:
-                                        'Open a song file from anywhere on your computer',
+                                    tooltip: loc.tooltipOpenFile,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.restore_page,
-                                    label: 'Recover',
+                                    label: loc.recover,
                                     onPressed: recoverAutoBackup,
-                                    tooltip: 'Recover autosave backup',
+                                    tooltip: loc.tooltipRecover,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.delete_sweep,
-                                    label: 'Clear',
+                                    label: loc.clear,
                                     onPressed: clearSong,
-                                    tooltip: 'Clear current song notation',
+                                    tooltip: loc.tooltipClear,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'Edit',
+                                title: loc.edit,
                                 children: [
                                   buildToolbarButton(
                                     icon: Icons.undo,
-                                    label: 'Undo',
+                                    label: loc.undo,
                                     onPressed: undoLastAction,
-                                    tooltip: 'Undo last action',
+                                    tooltip: loc.tooltipUndo,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.redo,
-                                    label: 'Redo',
+                                    label: loc.redo,
                                     onPressed: redoLastAction,
-                                    tooltip: 'Redo last action',
+                                    tooltip: loc.tooltipRedo,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'Export',
+                                title: loc.export,
                                 children: [
                                   buildToolbarButton(
                                     icon: Icons.image,
-                                    label: 'PNG',
+                                    label: loc.png,
                                     onPressed: exportSheetAsPng,
-                                    tooltip: 'Export sheet as PNG image',
+                                    tooltip: loc.tooltipExportPng,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.picture_as_pdf,
-                                    label: 'PDF',
+                                    label: loc.pdf,
                                     onPressed: exportSheetAsPdf,
-                                    tooltip: 'Export sheet as PDF document',
+                                    tooltip: loc.tooltipExportPdf,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'Folders',
+                                title: loc.folders,
                                 children: [
                                   buildToolbarButton(
                                     icon: Icons.library_music,
-                                    label: 'Songs',
+                                    label: loc.songs,
                                     onPressed: openSongFolder,
-                                    tooltip: 'Open song library folder',
+                                    tooltip: loc.tooltipSongsFolder,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.folder,
-                                    label: 'Exports',
+                                    label: loc.exports,
                                     onPressed: openExportFolder,
-                                    tooltip: 'Open export folder',
+                                    tooltip: loc.tooltipExportsFolder,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.manage_search,
-                                    label: 'Last Save',
+                                    label: loc.lastSave,
                                     onPressed: revealLastSavedSongFile,
-                                    tooltip: 'Show last saved song file',
+                                    tooltip: loc.tooltipLastSave,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.find_in_page,
-                                    label: 'Last Export',
+                                    label: loc.lastExport,
                                     onPressed: revealLastExportedFile,
-                                    tooltip: 'Show last exported file',
+                                    tooltip: loc.tooltipLastExport,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'Help',
+                                title: loc.help,
                                 children: [
                                   buildToolbarButton(
                                     icon: Icons.help_outline,
-                                    label: 'Help',
+                                    label: loc.help,
                                     onPressed: showHelpDialog,
-                                    tooltip: 'Help / Instructions',
+                                    tooltip: loc.tooltipHelp,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.history,
-                                    label: 'Changes',
+                                    label: loc.changes,
                                     onPressed: showChangelogDialog,
-                                    tooltip: 'Version history',
+                                    tooltip: loc.tooltipChanges,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.bug_report,
-                                    label: 'Error Report',
+                                    label: loc.errorReport,
                                     onPressed: exportErrorReport,
-                                    tooltip: 'Export local error log',
+                                    tooltip: loc.tooltipErrorReport,
                                   ),
 
                                   buildToolbarButton(
                                     icon: Icons.info_outline,
-                                    label: 'About',
+                                    label: loc.about,
                                     onPressed: showAboutAppDialog,
-                                    tooltip: 'About app',
+                                    tooltip: loc.tooltipAbout,
                                   ),
                                 ],
                               ),
 
                               buildToolbarSection(
-                                title: 'Status',
+                                title: loc.status,
                                 children: [
                                   ConstrainedBox(
                                     constraints: const BoxConstraints(
@@ -5161,8 +5221,8 @@ class _EditorScreenState extends State<EditorScreen> {
                                     children: [
                                       Text(
                                         hasUnsavedChanges
-                                            ? 'Unsaved changes'
-                                            : 'Saved',
+                                            ? loc.unsavedChanges
+                                            : loc.saved,
                                         style: TextStyle(
                                           color: hasUnsavedChanges
                                               ? Colors.orange
@@ -5248,6 +5308,21 @@ class _EditorScreenState extends State<EditorScreen> {
                                         selectedTuning: selectedTuning,
                                         tempoBpm: getTempoBpm(),
                                         slotSpacing: currentSlotSpacing,
+
+                                        stringLabelBuilder: loc.stringLabel,
+                                        lyricsLabel: loc.lyricsLabel,
+                                        modeWriteLabel: loc.modeWrite,
+                                        modeSmartEraseLabel: loc.modeSmartErase,
+                                        modeRestLabel: loc.modeRest,
+                                        modeSimileRepeatLabel:
+                                            loc.modeSimileRepeat,
+                                        modeLyricLabel: loc.modeLyric,
+                                        modeSectionLabel: loc.modeSectionLabel,
+                                        modeSuriSlideLabel: loc.modeSuriSlide,
+                                        metadataLine: loc.metadataLine(
+                                          selectedTuning,
+                                          getTempoBpm(),
+                                        ),
                                       ),
                                       child: SizedBox(
                                         width: canvasWidth,
@@ -5283,12 +5358,24 @@ class ShamisenPainter extends CustomPainter {
 
   final NoteAnchor? pendingSuriStart;
   final NoteAnchor? selectedNoteAnchor;
+
   final EditorTool selectedTool;
   final int totalMeasures;
   final String songTitle;
   final String selectedTuning;
   final int tempoBpm;
   final double slotSpacing;
+
+  final String Function(int stringNumber) stringLabelBuilder;
+  final String lyricsLabel;
+  final String modeWriteLabel;
+  final String modeSmartEraseLabel;
+  final String modeRestLabel;
+  final String modeSimileRepeatLabel;
+  final String modeLyricLabel;
+  final String modeSectionLabel;
+  final String modeSuriSlideLabel;
+  final String metadataLine;
 
   ShamisenPainter({
     required this.notes,
@@ -5306,6 +5393,17 @@ class ShamisenPainter extends CustomPainter {
     required this.selectedTuning,
     required this.tempoBpm,
     required this.slotSpacing,
+
+    required this.stringLabelBuilder,
+    required this.lyricsLabel,
+    required this.modeWriteLabel,
+    required this.modeSmartEraseLabel,
+    required this.modeRestLabel,
+    required this.modeSimileRepeatLabel,
+    required this.modeLyricLabel,
+    required this.modeSectionLabel,
+    required this.modeSuriSlideLabel,
+    required this.metadataLine,
   });
 
   static const double leftMargin = SheetMetrics.leftMargin;
@@ -5460,7 +5558,7 @@ class ShamisenPainter extends CustomPainter {
 
     final metadataPainter = TextPainter(
       text: TextSpan(
-        text: 'Tuning: $selectedTuning    Tempo: $tempoBpm BPM',
+        text: metadataLine,
         style: const TextStyle(
           color: Colors.black87,
           fontSize: 15,
@@ -5480,19 +5578,19 @@ class ShamisenPainter extends CustomPainter {
     String text;
 
     if (selectedTool == EditorTool.write) {
-      text = 'Mode: Write';
+      text = modeWriteLabel;
     } else if (selectedTool == EditorTool.erase) {
-      text = 'Mode: Smart Erase';
+      text = modeSmartEraseLabel;
     } else if (selectedTool == EditorTool.rest) {
-      text = 'Mode: Rest';
+      text = modeRestLabel;
     } else if (selectedTool == EditorTool.repeat) {
-      text = 'Mode: Simile Repeat';
+      text = modeSimileRepeatLabel;
     } else if (selectedTool == EditorTool.lyric) {
-      text = 'Mode: Lyric';
+      text = modeLyricLabel;
     } else if (selectedTool == EditorTool.section) {
-      text = 'Mode: Section Label';
+      text = modeSectionLabel;
     } else {
-      text = 'Mode: Suri Slide';
+      text = modeSuriSlideLabel;
     }
 
     Color color;
@@ -5632,7 +5730,7 @@ class ShamisenPainter extends CustomPainter {
 
       final labelPainter = TextPainter(
         text: TextSpan(
-          text: 'String ${i + 1}',
+          text: stringLabelBuilder(i + 1),
           style: const TextStyle(color: Colors.black, fontSize: 14),
         ),
         textDirection: TextDirection.ltr,
@@ -5746,10 +5844,7 @@ class ShamisenPainter extends CustomPainter {
 
     final rect = Rect.fromCenter(center: Offset(x, y), width: 48, height: 58);
 
-    final roundedRect = RRect.fromRectAndRadius(
-      rect,
-      const Radius.circular(8),
-    );
+    final roundedRect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
 
     canvas.drawRRect(roundedRect, fillPaint);
     canvas.drawRRect(roundedRect, highlightPaint);
@@ -5809,9 +5904,9 @@ class ShamisenPainter extends CustomPainter {
     final lyricY = topMargin + stringSpacing * 2 + lyricRowYOffset;
 
     final labelPainter = TextPainter(
-      text: const TextSpan(
-        text: 'Lyrics',
-        style: TextStyle(
+      text: TextSpan(
+        text: lyricsLabel,
+        style: const TextStyle(
           color: Colors.black87,
           fontSize: 14,
           fontWeight: FontWeight.bold,

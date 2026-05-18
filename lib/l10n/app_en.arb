@@ -1,0 +1,447 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Shamisen Tab Composer Beta 0.2.0",
+  "language": "Language",
+  "english": "English",
+  "japanese": "Japanese",
+  "systemDefault": "System Default",
+  "ready": "Ready",
+
+  "songSettings": "Song Settings",
+  "noteInput": "Note Input",
+  "notationTools": "Notation Tools",
+  "file": "File",
+  "edit": "Edit",
+  "export": "Export",
+  "folders": "Folders",
+  "help": "Help",
+  "status": "Status",
+
+  "title": "Title",
+  "tuning": "Tuning",
+  "bpm": "BPM",
+  "measures": "Measures",
+  "zoom": "Zoom",
+  "tabNumber": "Tab Number",
+  "rhythm": "Rhythm",
+  "technique": "Technique",
+  "repeat": "Repeat",
+
+  "newSong": "New",
+  "save": "Save",
+  "load": "Load",
+  "recent": "Recent",
+  "saveCopy": "Save Copy",
+  "openFile": "Open File",
+  "recover": "Recover",
+  "clear": "Clear",
+
+  "undo": "Undo",
+  "redo": "Redo",
+
+  "png": "PNG",
+  "pdf": "PDF",
+
+  "songs": "Songs",
+  "exports": "Exports",
+  "lastSave": "Last Save",
+  "lastExport": "Last Export",
+
+  "changes": "Changes",
+  "errorReport": "Error Report",
+  "about": "About",
+
+  "write": "Write",
+  "erase": "Erase",
+  "suri": "Suri",
+  "rest": "Rest",
+  "lyric": "Lyric",
+  "section": "Section",
+
+  "unsavedChanges": "Unsaved changes",
+  "saved": "Saved",
+  "notSavedToLibrary": "Not saved to library",
+  "noLibraryFileSelected": "No library file selected",
+
+  "libraryFile": "Library file: {fileName}",
+  "@libraryFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+    "stringLabel": "String {stringNumber}",
+  "@stringLabel": {
+    "placeholders": {
+      "stringNumber": {
+        "type": "int"
+      }
+    }
+  },
+
+  "lyricsLabel": "Lyrics",
+
+  "modeWrite": "Mode: Write",
+  "modeSmartErase": "Mode: Smart Erase",
+  "modeRest": "Mode: Rest",
+  "modeSimileRepeat": "Mode: Simile Repeat",
+  "modeLyric": "Mode: Lyric",
+  "modeSectionLabel": "Mode: Section Label",
+  "modeSuriSlide": "Mode: Suri Slide",
+
+    "metadataLine": "Tuning: {tuning}    Tempo: {tempoBpm} BPM",
+    "@metadataLine": {
+        "placeholders": {
+            "tuning": {
+                "type": "String"
+                },
+                "tempoBpm": {
+                    "type": "int"
+                }
+            }
+    },
+    "returnButton": "Return",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "overwrite": "Overwrite",
+    "saveFirst": "Save First",
+    "continueWithoutSaving": "Continue Without Saving",
+    "recoverBackup": "Recover Backup",
+    "openFileLocation": "Open File Location",
+
+    "unsavedChangesTitle": "Unsaved changes",
+    "overwriteSavedSongTitle": "Overwrite saved song?",
+    "recoverAutosaveTitle": "Recover autosave backup?",
+    "startNewSongTitle": "Start a new song?",
+    "clearCurrentSongTitle": "Clear current song?",
+    "loadSongTitle": "Load Song",
+    "recentFilesTitle": "Recent Files",
+    "noRecentFiles": "No recent files.",
+    "deleteSavedSongTitle": "Delete saved song?",
+    "saveCopyCompleteTitle": "Save Copy complete",
+    
+    "exportCompleteTitle": "{exportType} export complete",
+    "@exportCompleteTitle": {
+        "placeholders": {
+            "exportType": {
+            "type": "String"
+            }
+        }
+    },
+        "savedToPath": "Saved to:\n{filePath}",
+        "@savedToPath": {
+        "placeholders": {
+            "filePath": {
+            "type": "String"
+            }
+        }
+    },
+        "savedCopyToPath": "Saved copy to:\n{filePath}",
+        "@savedCopyToPath": {
+        "placeholders": {
+            "filePath": {
+            "type": "String"
+            }
+        }
+    },
+    "noSavedSongsFound": "No saved songs found.",
+    "noRecentFiles": "No recent files.",
+    "modifiedDate": "Modified: {modifiedDate}",
+    "@modifiedDate": {
+        "placeholders": {
+            "modifiedDate": {
+            "type": "String"
+            }
+        }
+    },
+
+    "unsavedChangesBody": "You have unsaved changes. What do you want to do before {actionName}?",
+    "@unsavedChangesBody": {
+        "placeholders": {
+            "actionName": {
+            "type": "String"
+            }
+        }
+    },
+
+    "overwriteSavedSongBody": "A saved song named \"{songTitle}\" already exists.\n\nDo you want to replace it?",
+    "@overwriteSavedSongBody": {
+        "placeholders": {
+            "songTitle": {
+            "type": "String"
+            }
+        }
+    },
+
+    "recoverAutosaveBody": "This will replace the current sheet with the latest autosave backup. Use this only if you want to restore recent unsaved work.",
+
+    "startNewSongBody": "This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom.",
+
+    "clearCurrentSongBody": "This will remove all notes, rests, Suri slides, lyrics, repeats, and section labels. Song settings will stay the same.",
+
+    "deleteCurrentSongBody": "Delete \"{songName}\"? This is the song currently open in the editor.\n\nThe sheet will stay open, but it will become unsaved.",
+    "@deleteCurrentSongBody": {
+        "placeholders": {
+            "songName": {
+            "type": "String"
+            }
+        }
+    },
+
+    "deleteSavedSongBody": "Delete \"{songName}\"? This cannot be undone.",
+    "@deleteSavedSongBody": {
+        "placeholders": {
+            "songName": {
+            "type": "String"
+            }
+        }
+    },
+
+    "removeFromRecentFiles": "Remove from recent files",
+
+    "tooltipWrite": "Write note (Ctrl + 1)",
+    "tooltipErase": "Smart erase (Ctrl + 2)",
+    "tooltipSuri": "Suri slide mode (Ctrl + 3)",
+    "tooltipRest": "Rest mode (Ctrl + 4)",
+    "tooltipRepeat": "Simile repeat mode (Ctrl + 5)",
+    "tooltipLyric": "Lyric mode (Ctrl + 6)",
+    "tooltipSection": "Section label mode (Ctrl + 7)",
+
+    "tooltipNewSong": "Start a new song",
+    "tooltipSave": "Save song to the local song library",
+    "tooltipLoad": "Load song from the local song library",
+    "tooltipRecent": "Open a recently used song file",
+    "tooltipSaveCopy": "Save a JSON copy anywhere on your computer without changing the active library file",
+    "tooltipOpenFile": "Open a song file from anywhere on your computer",
+    "tooltipRecover": "Recover autosave backup",
+    "tooltipClear": "Clear current song notation",
+
+    "tooltipUndo": "Undo last action",
+    "tooltipRedo": "Redo last action",
+
+    "tooltipExportPng": "Export sheet as PNG image",
+    "tooltipExportPdf": "Export sheet as PDF document",
+
+    "tooltipSongsFolder": "Open song library folder",
+    "tooltipExportsFolder": "Open export folder",
+    "tooltipLastSave": "Show last saved song file",
+    "tooltipLastExport": "Show last exported file",
+
+    "tooltipHelp": "Help / Instructions",
+    "tooltipChanges": "Version history",
+    "tooltipErrorReport": "Export local error log",
+    "tooltipAbout": "About app",
+
+    "tooltipZoomOut": "Zoom out",
+    "tooltipZoomIn": "Zoom in",
+
+    "statusLanguageSystem": "Language set to system default.",
+    "statusLanguageJapanese": "Language set to Japanese.",
+    "statusLanguageEnglish": "Language set to English.",
+
+    "statusUpdatedTitle": "Updated song title.",
+    "statusSelectedTuning": "Selected tuning: {tuning}.",
+    "@statusSelectedTuning": {
+        "placeholders": {
+            "tuning": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusTempoPositiveNumber": "Tempo should be a positive number.",
+    "statusUpdatedTempo": "Updated tempo to {tempoBpm} BPM.",
+    "@statusUpdatedTempo": {
+        "placeholders": {
+            "tempoBpm": {
+            "type": "int"
+            }
+        }
+    },
+
+    "statusSetMeasures": "Set song length to {measureCount} measures.",
+    "@statusSetMeasures": {
+        "placeholders": {
+            "measureCount": {
+            "type": "int"
+            }
+        }
+    },
+
+    "statusSetMeasuresRemovedItems": "Set song length to {measureCount} measures. Removed {removedCount} out-of-range item(s).",
+    "@statusSetMeasuresRemovedItems": {
+    "placeholders": {
+            "measureCount": {
+            "type": "int"
+            },
+            "removedCount": {
+            "type": "int"
+            }
+        }
+    },
+
+    "statusResetZoom": "Reset zoom to 100%.",
+    "statusSetZoom": "Set zoom to {zoomPercent}%.",
+    "@statusSetZoom": {
+        "placeholders": {
+            "zoomPercent": {
+            "type": "int"
+            }
+        }
+    },
+    "statusMinimumZoom": "Already at minimum zoom.",
+    "statusMaximumZoom": "Already at maximum zoom.",
+
+    "statusSelectedTabNumber": "Selected tab number {tabNumber}.",
+    "@statusSelectedTabNumber": {
+        "placeholders": {
+            "tabNumber": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusSelectedRhythm": "Selected {rhythm} rhythm: {slotCount} slots.",
+    "@statusSelectedRhythm": {
+        "placeholders": {
+            "rhythm": {
+            "type": "String"
+            },
+            "slotCount": {
+            "type": "int"
+            }
+        }
+    },
+
+    "statusSelectedTechnique": "Selected technique: {technique}.",
+    "@statusSelectedTechnique": {
+    "placeholders": {
+            "technique": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusSelectedRepeat": "Selected {repeatName} repeat.",
+    "@statusSelectedRepeat": {
+    "placeholders": {
+            "repeatName": {
+            "type": "String"
+            }
+        }
+    },
+
+    "oneMeasure": "one-measure",
+    "twoMeasure": "two-measure",
+
+    "statusNothingToUndo": "Nothing to undo.",
+    "statusUndidLastAction": "Undid last action.",
+    "statusNothingToRedo": "Nothing to redo.",
+    "statusRedidLastAction": "Redid last action.",
+    "statusClearedSelection": "Cleared selection.",
+
+    "statusStartedNewSong": "Started new song.",
+    "statusClearedSong": "Cleared song.",
+
+    "statusSavedSong": "Saved \"{songTitle}\" successfully.",
+    "@statusSavedSong": {
+        "placeholders": {
+            "songTitle": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusSaveCancelledOverwrite": "Save cancelled to avoid overwriting \"{songTitle}\".",
+    "@statusSaveCancelledOverwrite": {
+        "placeholders": {
+            "songTitle": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusSaveFailed": "Save failed: {errorMessage}",
+        "@statusSaveFailed": {
+        "placeholders": {
+            "errorMessage": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusLoadedSong": "Loaded \"{songTitle}\" successfully.",
+    "@statusLoadedSong": {
+        "placeholders": {
+            "songTitle": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusLoadFailed": "Load failed: {errorMessage}",
+    "@statusLoadFailed": {
+        "placeholders": {
+            "errorMessage": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusSaveCopyCancelled": "Save Copy cancelled.",
+    "statusSaveCopySuccess": "Saved song copy successfully. Your active library file was not changed.",
+    "statusSaveCopyFailed": "Save Copy failed: {errorMessage}",
+    "@statusSaveCopyFailed": {
+        "placeholders": {
+            "errorMessage": {
+            "type": "String"
+            }
+        }
+    },
+
+    "statusOpenFileCancelled": "Open File cancelled.",
+    "statusOpenFileMissing": "Open File failed: selected file does not exist.",
+    "statusOpenFileSuccess": "Opened song file successfully. Use Save to add it to your song library.",
+    "statusOpenFileFailed": "Open File failed: {errorMessage}",
+    "@statusOpenFileFailed": {
+        "placeholders": {
+            "errorMessage": {
+            "type": "String"
+            }
+        }
+    },
+
+    "zoomOutButton": "Zoom -",
+    "zoomInButton": "Zoom +",
+    "deleteSavedSongTooltip": "Delete saved song",
+
+    "lyricDialogTitle": "Lyric",
+    "lyricTextLabel": "Lyric text",
+    "lyricTextHint": "Example: sakura / さくら / 桜",
+
+    "sectionDialogTitle": "Section label for measure {measureNumber}",
+    "@sectionDialogTitle": {
+        "placeholders": {
+            "measureNumber": {
+            "type": "int"
+            }
+        }
+    },
+    
+    "sectionLabelText": "Section label",
+    "sectionLabelHint": "Example: Intro / Verse / Chorus",
+
+    "statusClickInsideMeasureArea": "Click inside the song measure area.",
+    "statusPlaceNoteOrRestBeforeLyric": "Place a note or rest first, then add lyrics under it.",
+    "statusNoLyricAdded": "No lyric added.",
+    "statusDeletedLyric": "Deleted lyric.",
+    "statusUpdatedLyric": "Updated lyric.",
+    "statusAddedLyric": "Added lyric under note/rest.",
+
+    "statusNoSectionLabelAdded": "No section label added.",
+    "statusDeletedSectionLabel": "Deleted section label.",
+    "statusUpdatedSectionLabel": "Updated section label.",
+    "statusAddedSectionLabel": "Added section label."
+}
