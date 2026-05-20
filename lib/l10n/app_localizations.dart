@@ -1183,6 +1183,828 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Added section label.'**
   String get statusAddedSectionLabel;
+
+  /// No description provided for @statusAutosaveFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Autosave backup found. Use Recover Autosave Backup if you need it.'**
+  String get statusAutosaveFound;
+
+  /// No description provided for @statusAutosaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Autosave failed: {errorMessage}'**
+  String statusAutosaveFailed(Object errorMessage);
+
+  /// No description provided for @statusNoAutosaveBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'No autosave backup found.'**
+  String get statusNoAutosaveBackup;
+
+  /// No description provided for @statusRecoveredAutosave.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovered autosave backup. Use Save to store it as a normal song.'**
+  String get statusRecoveredAutosave;
+
+  /// No description provided for @statusAutosaveRecoveryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Autosave recovery failed: {errorMessage}'**
+  String statusAutosaveRecoveryFailed(Object errorMessage);
+
+  /// No description provided for @statusExportingPng.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting PNG...'**
+  String get statusExportingPng;
+
+  /// No description provided for @statusExportingPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting PDF...'**
+  String get statusExportingPdf;
+
+  /// No description provided for @statusPngExportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG export completed successfully.'**
+  String get statusPngExportSuccess;
+
+  /// No description provided for @statusPdfExportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF export completed successfully.'**
+  String get statusPdfExportSuccess;
+
+  /// No description provided for @statusPngExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'PNG export failed: {errorMessage}'**
+  String statusPngExportFailed(Object errorMessage);
+
+  /// No description provided for @statusPdfExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF export failed: {errorMessage}'**
+  String statusPdfExportFailed(Object errorMessage);
+
+  /// No description provided for @statusToolWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write mode.'**
+  String get statusToolWrite;
+
+  /// No description provided for @statusToolErase.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.'**
+  String get statusToolErase;
+
+  /// No description provided for @statusToolSuri.
+  ///
+  /// In en, this message translates to:
+  /// **'Suri mode: click the starting note, then ending note.'**
+  String get statusToolSuri;
+
+  /// No description provided for @statusToolRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest mode: click a line to place a rest.'**
+  String get statusToolRest;
+
+  /// No description provided for @statusToolRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat mode: click a measure to toggle a simile mark.'**
+  String get statusToolRepeat;
+
+  /// No description provided for @statusToolLyric.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyric mode: click a note/rest timing slot to add or edit lyrics.'**
+  String get statusToolLyric;
+
+  /// No description provided for @statusToolSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Section mode: click a measure to add/edit a label.'**
+  String get statusToolSection;
+
+  /// No description provided for @statusDeletedCurrentSongFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{songName}\". The current sheet is still open, but it is no longer saved.'**
+  String statusDeletedCurrentSongFile(Object songName);
+
+  /// No description provided for @statusDeletedSavedSongFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted saved song \"{songName}\".'**
+  String statusDeletedSavedSongFile(Object songName);
+
+  /// No description provided for @statusDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed: {errorMessage}'**
+  String statusDeleteFailed(Object errorMessage);
+
+  /// No description provided for @statusRecentFileMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent file no longer exists. Removed it from the list.'**
+  String get statusRecentFileMissing;
+
+  /// No description provided for @statusLoadFileMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Load failed: selected song file no longer exists.'**
+  String get statusLoadFileMissing;
+
+  /// No description provided for @statusLoadNewerFileFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Load failed: this song file uses a newer file format. Please update the app.'**
+  String get statusLoadNewerFileFormat;
+
+  /// No description provided for @statusSelectedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected note {tabNumber} on String {stringNumber}.'**
+  String statusSelectedNote(Object stringNumber, Object tabNumber);
+
+  /// No description provided for @statusUpdatedSelectedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated selected note.'**
+  String get statusUpdatedSelectedNote;
+
+  /// No description provided for @statusSelectedNoteOverlapRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot update selected note: rhythm overlaps a simile repeat measure.'**
+  String get statusSelectedNoteOverlapRepeat;
+
+  /// No description provided for @statusSelectedNoteOverlapNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot update selected note: rhythm overlaps another note.'**
+  String get statusSelectedNoteOverlapNote;
+
+  /// No description provided for @statusSelectedNoteOverlapRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot update selected note: rhythm overlaps a rest.'**
+  String get statusSelectedNoteOverlapRest;
+
+  /// No description provided for @statusCannotPlaceNoteRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place note: this measure has a simile repeat.'**
+  String get statusCannotPlaceNoteRepeat;
+
+  /// No description provided for @statusCannotPlaceNoteRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place note: rhythm overlaps a rest.'**
+  String get statusCannotPlaceNoteRest;
+
+  /// No description provided for @statusCannotPlaceNoteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place note: rhythm overlaps another note.'**
+  String get statusCannotPlaceNoteNote;
+
+  /// No description provided for @statusPlacedSelectedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Placed and selected {rhythm} note.'**
+  String statusPlacedSelectedNote(Object rhythm);
+
+  /// No description provided for @statusCannotPlaceRestRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place rest: this measure has a simile repeat.'**
+  String get statusCannotPlaceRestRepeat;
+
+  /// No description provided for @statusRemovedRestAndLyric.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed rest and attached lyric.'**
+  String get statusRemovedRestAndLyric;
+
+  /// No description provided for @statusCannotPlaceRestNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place rest: overlaps a note.'**
+  String get statusCannotPlaceRestNote;
+
+  /// No description provided for @statusCannotPlaceRestRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place rest: overlaps another rest.'**
+  String get statusCannotPlaceRestRest;
+
+  /// No description provided for @statusPlacedRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Placed {rhythm} rest.'**
+  String statusPlacedRest(Object rhythm);
+
+  /// No description provided for @statusSuriClickExistingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Suri mode: click an existing note.'**
+  String get statusSuriClickExistingNote;
+
+  /// No description provided for @statusSuriStartSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Suri start selected. Click the ending note.'**
+  String get statusSuriStartSelected;
+
+  /// No description provided for @statusSuriSameString.
+  ///
+  /// In en, this message translates to:
+  /// **'Suri must connect notes on the same string.'**
+  String get statusSuriSameString;
+
+  /// No description provided for @statusSuriNeedsTwoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Suri needs two different notes.'**
+  String get statusSuriNeedsTwoNotes;
+
+  /// No description provided for @statusRemovedSuriSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed Suri slide.'**
+  String get statusRemovedSuriSlide;
+
+  /// No description provided for @statusAddedSuriSlide.
+  ///
+  /// In en, this message translates to:
+  /// **'Added Suri slide.'**
+  String get statusAddedSuriSlide;
+
+  /// No description provided for @statusRemovedRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed {repeatLength}-measure simile repeat.'**
+  String statusRemovedRepeat(Object repeatLength);
+
+  /// No description provided for @statusOneMeasureRepeatCannotBeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'A one-measure simile repeat cannot be placed in measure 1.'**
+  String get statusOneMeasureRepeatCannotBeFirst;
+
+  /// No description provided for @statusTwoMeasureRepeatNeedsPreviousMeasures.
+  ///
+  /// In en, this message translates to:
+  /// **'A two-measure simile repeat needs two previous measures to repeat.'**
+  String get statusTwoMeasureRepeatNeedsPreviousMeasures;
+
+  /// No description provided for @statusNotEnoughSpaceForRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough space for a {repeatLength}-measure simile repeat here.'**
+  String statusNotEnoughSpaceForRepeat(Object repeatLength);
+
+  /// No description provided for @statusCannotPlaceRepeatOverNotesOrRests.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place simile repeat: selected measure range already has notes or rests.'**
+  String get statusCannotPlaceRepeatOverNotesOrRests;
+
+  /// No description provided for @statusCannotPlaceRepeatOverRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot place simile repeat: it overlaps another repeat mark.'**
+  String get statusCannotPlaceRepeatOverRepeat;
+
+  /// No description provided for @statusAddedOneMeasureRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Added one-measure simile repeat to measure {measureNumber}.'**
+  String statusAddedOneMeasureRepeat(Object measureNumber);
+
+  /// No description provided for @statusAddedTwoMeasureRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Added two-measure simile repeat from measure {startMeasure} to {endMeasure}.'**
+  String statusAddedTwoMeasureRepeat(Object endMeasure, Object startMeasure);
+
+  /// No description provided for @statusNoSelectedNoteToDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'No selected note to delete.'**
+  String get statusNoSelectedNoteToDelete;
+
+  /// No description provided for @statusSelectedNoteMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected note no longer exists.'**
+  String get statusSelectedNoteMissing;
+
+  /// No description provided for @statusDeletedSelectedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted selected note.'**
+  String get statusDeletedSelectedNote;
+
+  /// No description provided for @statusDeletedNoteRelatedItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted note, related Suri slides, and attached lyric.'**
+  String get statusDeletedNoteRelatedItems;
+
+  /// No description provided for @statusDeletedRestAndLyric.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted rest and attached lyric.'**
+  String get statusDeletedRestAndLyric;
+
+  /// No description provided for @statusNoNoteOrRestToErase.
+  ///
+  /// In en, this message translates to:
+  /// **'No note or rest to erase here.'**
+  String get statusNoNoteOrRestToErase;
+
+  /// No description provided for @statusDeletedRepeatFromMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted simile repeat from measure {measureNumber}.'**
+  String statusDeletedRepeatFromMeasure(Object measureNumber);
+
+  /// No description provided for @statusNothingToErase.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to erase here.'**
+  String get statusNothingToErase;
+
+  /// No description provided for @aboutDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'About Shamisen Tab Composer'**
+  String get aboutDialogTitle;
+
+  /// No description provided for @aboutDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shamisen Tab Composer Beta 0.2.0\n\nA desktop shamisen tablature editor for creating, saving, loading, and exporting shamisen tab sheets.\n\nCurrent beta features:\n- Note input\n- Rests\n- Suri slide markings\n- Lyrics under notes/rests\n- Section labels\n- Simile repeat marks\n- Save/load song library\n- Save Copy and Open File support\n- PNG/PDF export\n- Undo/Redo\n- Keyboard shortcuts\n- Autosave backup and recovery\n\nBeta notice:\nThis version is ready for public testing. File formats, layout, and export behavior may still change before the stable 1.0 release.'**
+  String get aboutDialogBody;
+
+  /// No description provided for @helpDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to Use Shamisen Tab Composer'**
+  String get helpDialogTitle;
+
+  /// No description provided for @helpDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Workflow\n1. Choose a tab number, rhythm, and technique.\n2. Click directly on a string line to place the tab number.\n3. Click an existing note in Write mode to select and edit it.\n4. Use Save to store the song in your local song library.\n5. Use Load to open a saved song from your local song library.\n6. Use Save Copy to save a JSON copy anywhere on your computer.\n7. Use Open File to open a song file from anywhere on your computer.\n\nTools\n8. Use PNG or PDF export to share or print the current sheet.\n\nAutosave Recovery\nThe app keeps a local autosave backup while you work.\nUse Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\nWrite: Place notes or select existing notes.\nErase: Smart erase for notes, rests, lyrics, Suri slides, repeats, and section labels.\nSuri: Click two notes on the same string to add or remove a slide mark.\nRest: Place a rhythmic rest on a string line.\nRepeat: Click a measure to add or remove a simile repeat mark.\nLyric: Click a note/rest timing slot to add lyrics under it.\nSection: Click a measure to add labels like Intro, Verse, or Chorus.\n\nSong Settings\nTitle: Used for the sheet title and save file name.\nTuning: Choose Honchoshi, Niagari, or Sansagari.\nBPM: Set the tempo.\nMeasures: Control the length of the song.\nZoom: Adjust horizontal spacing.\nRepeat: Choose one-measure or two-measure simile repeat.\n\nImportant Notes\nLyrics can only be added under an existing note or rest.\nSuri slides must connect two notes on the same string.\nRepeat marks cannot be placed over measures that already contain notes or rests.\nNew Song resets everything.\nClear Song clears the notation but does not reset all song settings.'**
+  String get helpDialogBody;
+
+  /// No description provided for @changelogDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Version History'**
+  String get changelogDialogTitle;
+
+  /// No description provided for @changelogDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Shamisen Tab Composer Beta 0.2.0\n\nFirst public beta release candidate for testing the core tablature editor.\n\nIncluded features:\n- Shamisen tab note input\n- Three-string sheet layout\n- Rhythm support: Whole, Half, Quarter, Eighth, Sixteenth\n- Tab number selection\n- Shamisen tuning metadata\n- BPM metadata\n- Measure count control\n- Horizontal zoom control\n- Left-hand technique markings\n- Right-hand technique markings\n- Oshibachi and Suberi above-note markings\n- Suri slide markings\n- Rest input\n- Lyric input under notes and rests\n- Section labels\n- One-measure simile repeat marks\n- Two-measure simile repeat marks\n- Smart erase mode\n- Selected-note editing\n- Undo and redo\n- Save and load local song files\n- Delete saved songs from the Load window\n- Save Copy song file support\n- Open File song file support\n- PNG export\n- PDF export\n- Open song library folder\n- Open export folder\n- Reveal last saved song file\n- Reveal last exported file\n- Keyboard shortcuts\n- Help dialog\n- About dialog\n- Autosave backup\n- Autosave recovery button\n- Unsaved changes status\n\nKnown Beta Limitations:\n- Windows desktop is the main testing platform right now.\n- Export layout may need improvement for long songs.\n- PDF export currently captures the visual sheet as displayed.\n- Mobile layout is not ready.\n- Save file format may change before stable release.\n- More shamisen notation symbols still need to be added.\n\nNext Planned Version: Beta 0.3\n\nPlanned improvements:\n- Cleaner toolbar organization\n- Better exported sheet layout\n- More notation symbols\n- Sample song files\n- Better beginner instructions\n- More testing feedback support'**
+  String get changelogDialogBody;
+
+  /// No description provided for @sampleSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample Song'**
+  String get sampleSong;
+
+  /// No description provided for @tooltipSampleSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Load a built-in sample song for testing'**
+  String get tooltipSampleSong;
+
+  /// No description provided for @loadSampleSongTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Load Sample Song'**
+  String get loadSampleSongTitle;
+
+  /// No description provided for @loadSampleSongBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace the current sheet with a built-in sample song. Unsaved changes should be saved first if you want to keep them.'**
+  String get loadSampleSongBody;
+
+  /// No description provided for @loadSampleSongButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Load Sample'**
+  String get loadSampleSongButton;
+
+  /// No description provided for @sampleSongTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample Shamisen Piece'**
+  String get sampleSongTitle;
+
+  /// No description provided for @statusLoadedSampleSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Loaded sample song. Use Save to keep a copy in your song library.'**
+  String get statusLoadedSampleSong;
+
+  /// No description provided for @keyboardShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortcuts'**
+  String get keyboardShortcuts;
+
+  /// No description provided for @tooltipKeyboardShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Show keyboard shortcuts'**
+  String get tooltipKeyboardShortcuts;
+
+  /// No description provided for @keyboardShortcutsDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard Shortcuts'**
+  String get keyboardShortcutsDialogTitle;
+
+  /// No description provided for @keyboardShortcutsDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'File and Export\nCtrl+S: Save\nCtrl+N: New Song\nCtrl+O: Load Song\nCtrl+P: Export PDF\nCtrl+Shift+P: Export PNG\n\nEditing\nCtrl+Z: Undo\nCtrl+Y: Redo\nDelete: Delete selected note\nEsc: Clear current selection\n\nTools\nCtrl+1: Write mode\nCtrl+2: Erase mode\nCtrl+3: Suri mode\nCtrl+4: Rest mode\nCtrl+5: Repeat mode\nCtrl+6: Lyric mode\nCtrl+7: Section mode'**
+  String get keyboardShortcutsDialogBody;
+
+  /// No description provided for @resetView.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset View'**
+  String get resetView;
+
+  /// No description provided for @tooltipResetView.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset zoom to 100% and return to the start of the sheet'**
+  String get tooltipResetView;
+
+  /// No description provided for @statusResetView.
+  ///
+  /// In en, this message translates to:
+  /// **'View reset to 100% zoom and returned to the start of the sheet.'**
+  String get statusResetView;
+
+  /// No description provided for @clearRecentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Recent'**
+  String get clearRecentFiles;
+
+  /// No description provided for @clearRecentFilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Recent Files'**
+  String get clearRecentFilesTitle;
+
+  /// No description provided for @clearRecentFilesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will remove all entries from the Recent Files list. It will not delete any song files.'**
+  String get clearRecentFilesBody;
+
+  /// No description provided for @statusClearedRecentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared Recent Files list.'**
+  String get statusClearedRecentFiles;
+
+  /// No description provided for @statusNoRecentFilesToClear.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no recent files to clear.'**
+  String get statusNoRecentFilesToClear;
+
+  /// No description provided for @jumpToMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump'**
+  String get jumpToMeasure;
+
+  /// No description provided for @tooltipJumpToMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to a specific measure'**
+  String get tooltipJumpToMeasure;
+
+  /// No description provided for @jumpToMeasureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to Measure'**
+  String get jumpToMeasureTitle;
+
+  /// No description provided for @jumpToMeasureLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure number'**
+  String get jumpToMeasureLabel;
+
+  /// No description provided for @jumpToMeasureHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a measure number'**
+  String get jumpToMeasureHint;
+
+  /// No description provided for @jumpToMeasureButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump'**
+  String get jumpToMeasureButton;
+
+  /// No description provided for @statusJumpedToMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumped to measure {measureNumber}.'**
+  String statusJumpedToMeasure(Object measureNumber);
+
+  /// No description provided for @statusInvalidMeasureNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a measure number from 1 to {totalMeasures}.'**
+  String statusInvalidMeasureNumber(Object totalMeasures);
+
+  /// No description provided for @renameSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameSong;
+
+  /// No description provided for @tooltipRenameSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename the current song and update its saved file'**
+  String get tooltipRenameSong;
+
+  /// No description provided for @renameSongTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Song'**
+  String get renameSongTitle;
+
+  /// No description provided for @renameSongLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New song title'**
+  String get renameSongLabel;
+
+  /// No description provided for @renameSongHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a new title'**
+  String get renameSongHint;
+
+  /// No description provided for @renameSongButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameSongButton;
+
+  /// No description provided for @statusRenameCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename cancelled.'**
+  String get statusRenameCancelled;
+
+  /// No description provided for @statusRenameEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Song title cannot be empty.'**
+  String get statusRenameEmptyTitle;
+
+  /// No description provided for @statusRenamedSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed song to \"{songTitle}\".'**
+  String statusRenamedSong(Object songTitle);
+
+  /// No description provided for @statusRenameFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename failed: {errorMessage}'**
+  String statusRenameFailed(Object errorMessage);
+
+  /// No description provided for @duplicateSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get duplicateSong;
+
+  /// No description provided for @tooltipDuplicateSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new saved copy of the current song'**
+  String get tooltipDuplicateSong;
+
+  /// No description provided for @duplicateSongTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate Song'**
+  String get duplicateSongTitle;
+
+  /// No description provided for @duplicateSongLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate song title'**
+  String get duplicateSongLabel;
+
+  /// No description provided for @duplicateSongHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title for the copy'**
+  String get duplicateSongHint;
+
+  /// No description provided for @duplicateSongButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get duplicateSongButton;
+
+  /// No description provided for @duplicateTitleSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get duplicateTitleSuffix;
+
+  /// No description provided for @statusDuplicateCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate cancelled.'**
+  String get statusDuplicateCancelled;
+
+  /// No description provided for @statusDuplicateEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate title cannot be empty.'**
+  String get statusDuplicateEmptyTitle;
+
+  /// No description provided for @statusDuplicatedSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Created duplicate song \"{songTitle}\".'**
+  String statusDuplicatedSong(Object songTitle);
+
+  /// No description provided for @statusDuplicateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate failed: {errorMessage}'**
+  String statusDuplicateFailed(Object errorMessage);
+
+  /// No description provided for @revertToSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert'**
+  String get revertToSaved;
+
+  /// No description provided for @tooltipRevertToSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload the last saved version of the current song'**
+  String get tooltipRevertToSaved;
+
+  /// No description provided for @revertToSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert to Saved'**
+  String get revertToSavedTitle;
+
+  /// No description provided for @revertToSavedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will discard unsaved changes and reload the last saved version of the current song.'**
+  String get revertToSavedBody;
+
+  /// No description provided for @revertToSavedButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert'**
+  String get revertToSavedButton;
+
+  /// No description provided for @statusNoSavedVersionToRevert.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved library version is selected to revert to.'**
+  String get statusNoSavedVersionToRevert;
+
+  /// No description provided for @statusSavedVersionMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The saved song file no longer exists.'**
+  String get statusSavedVersionMissing;
+
+  /// No description provided for @statusRevertedToSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverted to the last saved version.'**
+  String get statusRevertedToSaved;
+
+  /// No description provided for @statusRevertCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert cancelled.'**
+  String get statusRevertCancelled;
+
+  /// No description provided for @statusRevertFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert failed: {errorMessage}'**
+  String statusRevertFailed(Object errorMessage);
+
+  /// No description provided for @backups.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups'**
+  String get backups;
+
+  /// No description provided for @tooltipBackupsFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open saved song backups folder'**
+  String get tooltipBackupsFolder;
+
+  /// No description provided for @restoreBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Backup'**
+  String get restoreBackup;
+
+  /// No description provided for @tooltipRestoreBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore a saved song backup'**
+  String get tooltipRestoreBackup;
+
+  /// No description provided for @restoreBackupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Backup'**
+  String get restoreBackupTitle;
+
+  /// No description provided for @restoreBackupConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get restoreBackupConfirmTitle;
+
+  /// No description provided for @restoreBackupConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will load the selected backup into the editor. It will not overwrite your current saved song until you press Save.'**
+  String get restoreBackupConfirmBody;
+
+  /// No description provided for @restoreBackupButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreBackupButton;
+
+  /// No description provided for @noSavedSongBackupsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved song backups found.'**
+  String get noSavedSongBackupsFound;
+
+  /// No description provided for @statusBackupFileMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected backup file no longer exists.'**
+  String get statusBackupFileMissing;
+
+  /// No description provided for @statusRestoreBackupCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup cancelled.'**
+  String get statusRestoreBackupCancelled;
+
+  /// No description provided for @statusRestoredBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored backup. Review it, then use Save if you want to keep it.'**
+  String get statusRestoredBackup;
+
+  /// No description provided for @statusRestoreBackupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore backup failed: {errorMessage}'**
+  String statusRestoreBackupFailed(Object errorMessage);
 }
 
 class _AppLocalizationsDelegate

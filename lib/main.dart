@@ -225,10 +225,91 @@ class ShamisenTabApp extends StatefulWidget {
 class _ShamisenTabAppState extends State<ShamisenTabApp> {
   Locale? selectedLocale;
 
+  @override
+  void initState() {
+    super.initState();
+    loadAppSettings();
+  }
+
+  Future<File> getAppSettingsFile() async {
+    final appDirectory = await LocalErrorLogger.getAppDataDirectory();
+
+    return File(
+      '${appDirectory.path}${Platform.pathSeparator}_app_settings.json',
+    );
+  }
+
+  Future<void> loadAppSettings() async {
+    try {
+      final settingsFile = await getAppSettingsFile();
+
+      if (!await settingsFile.exists()) {
+        return;
+      }
+
+      final contents = await settingsFile.readAsString();
+
+      if (contents.trim().isEmpty) {
+        return;
+      }
+
+      final decodedData = jsonDecode(contents);
+      final data = asStringKeyedMap(decodedData);
+
+      if (data == null) {
+        return;
+      }
+
+      final languageCode = readJsonString(data, 'languageCode', 'system');
+
+      Locale? loadedLocale;
+
+      if (languageCode == 'en') {
+        loadedLocale = const Locale('en');
+      } else if (languageCode == 'ja') {
+        loadedLocale = const Locale('ja');
+      } else {
+        loadedLocale = null;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        selectedLocale = loadedLocale;
+      });
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Load app settings failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> saveAppSettings(Locale? locale) async {
+    try {
+      final settingsFile = await getAppSettingsFile();
+
+      const encoder = JsonEncoder.withIndent('  ');
+
+      final data = {'languageCode': locale?.languageCode ?? 'system'};
+
+      await settingsFile.writeAsString(encoder.convert(data));
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Save app settings failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   void updateLocale(Locale? locale) {
     setState(() {
       selectedLocale = locale;
     });
+
+    unawaited(saveAppSettings(locale));
   }
 
   @override
@@ -488,6 +569,20 @@ class SheetImageCapture {
     required this.pngBytes,
     required this.logicalWidth,
     required this.logicalHeight,
+  });
+}
+
+class SheetUiImageCapture {
+  final ui.Image image;
+  final double logicalWidth;
+  final double logicalHeight;
+  final double pixelRatio;
+
+  const SheetUiImageCapture({
+    required this.image,
+    required this.logicalWidth,
+    required this.logicalHeight,
+    required this.pixelRatio,
   });
 }
 
@@ -911,6 +1006,148 @@ class _EditorScreenState extends State<EditorScreen> {
     scheduleAutoBackup();
   }
 
+  Future<void> resetView() async {
+    final zoomChanged = selectedZoom != 1.0;
+
+    setState(() {
+      selectedZoom = 1.0;
+      pendingSuriStart = null;
+      selectedNoteAnchor = null;
+      updateStatusFields(loc.statusResetView, StatusLevel.info);
+    });
+
+    if (zoomChanged) {
+      scheduleAutoBackup();
+    }
+
+    final scrollAnimations = <Future<void>>[];
+
+    if (horizontalScrollController.hasClients) {
+      scrollAnimations.add(
+        horizontalScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+
+    if (verticalScrollController.hasClients) {
+      scrollAnimations.add(
+        verticalScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+
+    if (toolbarScrollController.hasClients) {
+      scrollAnimations.add(
+        toolbarScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+
+    if (scrollAnimations.isNotEmpty) {
+      await Future.wait(scrollAnimations);
+    }
+  }
+
+  Future<void> jumpToMeasure() async {
+    String pendingMeasureText = '1';
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.jumpToMeasureTitle),
+          content: TextFormField(
+            initialValue: pendingMeasureText,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: loc.jumpToMeasureLabel,
+              hintText: loc.jumpToMeasureHint,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              pendingMeasureText = value;
+            },
+            onFieldSubmitted: (value) {
+              Navigator.of(dialogContext).pop(value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(null);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(pendingMeasureText);
+              },
+              child: Text(loc.jumpToMeasureButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    final measureNumber = int.tryParse(result.trim());
+
+    if (measureNumber == null ||
+        measureNumber < 1 ||
+        measureNumber > selectedTotalMeasures) {
+      setState(() {
+        updateStatusFields(
+          loc.statusInvalidMeasureNumber(selectedTotalMeasures),
+          StatusLevel.warning,
+        );
+      });
+      return;
+    }
+
+    final measureIndex = measureNumber - 1;
+    final targetX =
+        leftMargin + measureIndex * slotsPerMeasure * getCurrentSlotSpacing();
+
+    if (horizontalScrollController.hasClients) {
+      final maxScrollExtent =
+          horizontalScrollController.position.maxScrollExtent;
+
+      final targetOffset = (targetX - 40)
+          .clamp(0.0, maxScrollExtent)
+          .toDouble();
+
+      await horizontalScrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      pendingSuriStart = null;
+      selectedNoteAnchor = null;
+      updateStatusFields(
+        loc.statusJumpedToMeasure(measureNumber),
+        StatusLevel.info,
+      );
+    });
+  }
+
   void updateStatusFields(String message, StatusLevel level) {
     statusMessage = message;
     statusLevel = level;
@@ -1088,6 +1325,52 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {});
   }
 
+  Future<void> clearRecentSongFiles() async {
+    if (recentSongFilePaths.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusNoRecentFilesToClear, StatusLevel.warning);
+      });
+      return;
+    }
+
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.clearRecentFilesTitle),
+          content: Text(loc.clearRecentFilesBody),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(loc.clear),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldClear != true) return;
+
+    recentSongFilePaths.clear();
+    await saveRecentSongFiles();
+
+    if (!mounted) return;
+
+    setState(() {
+      updateStatusFields(loc.statusClearedRecentFiles, StatusLevel.success);
+    });
+  }
+
   Future<void> checkForAutoBackupOnStartup() async {
     try {
       final backupFile = await getAutoBackupFile();
@@ -1100,10 +1383,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         lastAutoBackupFilePath = backupFile.path;
-        updateStatusFields(
-          'Autosave backup found. Use Recover Autosave Backup if you need it.',
-          StatusLevel.warning,
-        );
+        updateStatusFields(loc.statusAutosaveFound, StatusLevel.warning);
       });
     } catch (_) {
       // Silent startup check only.
@@ -1141,7 +1421,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Autosave failed: ${readableErrorMessage(error)}',
+          loc.statusAutosaveFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -1165,7 +1445,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return;
 
         setState(() {
-          updateStatusFields('No autosave backup found.', StatusLevel.warning);
+          updateStatusFields(loc.statusNoAutosaveBackup, StatusLevel.warning);
         });
         return;
       }
@@ -1210,10 +1490,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         hasUnsavedChanges = true;
         lastAutoBackupFilePath = backupFile.path;
-        updateStatusFields(
-          'Recovered autosave backup. Use Save to store it as a normal song.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusRecoveredAutosave, StatusLevel.success);
       });
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -1226,7 +1503,164 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Autosave recovery failed: ${readableErrorMessage(error)}',
+          loc.statusAutosaveRecoveryFailed(readableErrorMessage(error)),
+          StatusLevel.error,
+        );
+      });
+    }
+  }
+
+  Future<void> restoreSavedSongBackup() async {
+    final canContinue = await confirmUnsavedChangesBefore(
+      'restoring a saved song backup',
+    );
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
+    try {
+      List<File> backupFiles = await getSavedSongBackupFiles();
+
+      if (!mounted) return;
+
+      if (backupFiles.isEmpty) {
+        setState(() {
+          updateStatusFields(loc.noSavedSongBackupsFound, StatusLevel.warning);
+        });
+        return;
+      }
+
+      final selectedBackup = await showDialog<File>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(loc.restoreBackupTitle),
+            content: SizedBox(
+              width: 560,
+              height: 380,
+              child: ListView.builder(
+                itemCount: backupFiles.length,
+                itemBuilder: (context, index) {
+                  final file = backupFiles[index];
+                  final displayName = displayNameFromFile(file);
+                  final modified = file.lastModifiedSync();
+
+                  return ListTile(
+                    leading: const Icon(Icons.backup),
+                    title: Text(displayName),
+                    subtitle: Text(loc.modifiedDate(modified.toString())),
+                    onTap: () {
+                      Navigator.of(dialogContext).pop(file);
+                    },
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(null);
+                },
+                child: Text(loc.returnButton),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (selectedBackup == null) {
+        if (!mounted) return;
+
+        setState(() {
+          updateStatusFields(
+            loc.statusRestoreBackupCancelled,
+            StatusLevel.warning,
+          );
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      if (!await selectedBackup.exists()) {
+        if (!mounted) return;
+
+        setState(() {
+          updateStatusFields(loc.statusBackupFileMissing, StatusLevel.error);
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      final shouldRestore = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: Text(loc.restoreBackupConfirmTitle),
+            content: Text(loc.restoreBackupConfirmBody),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+                child: Text(loc.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(true);
+                },
+                child: Text(loc.restoreBackupButton),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldRestore != true) {
+        if (!mounted) return;
+
+        setState(() {
+          updateStatusFields(
+            loc.statusRestoreBackupCancelled,
+            StatusLevel.warning,
+          );
+        });
+        return;
+      }
+
+      if (!mounted) return;
+
+      final loadedSuccessfully = await loadSongFromFile(
+        selectedBackup,
+        rememberRecent: false,
+      );
+
+      if (!loadedSuccessfully) return;
+      if (!mounted) return;
+
+      setState(() {
+        currentSongLibraryFilePath = null;
+        lastSavedSongFilePath = null;
+        hasUnsavedChanges = true;
+        pendingSuriStart = null;
+        selectedNoteAnchor = null;
+        updateStatusFields(loc.statusRestoredBackup, StatusLevel.success);
+      });
+
+      scheduleAutoBackup();
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Restore saved song backup failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          loc.statusRestoreBackupFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -1252,6 +1686,68 @@ class _EditorScreenState extends State<EditorScreen> {
     final safeTitle = sanitizeFileName(title);
 
     return File('${songDirectory.path}/$safeTitle.json');
+  }
+
+  Future<Directory> getSavedSongBackupDirectory() async {
+    final songDirectory = await getSongDirectory();
+
+    final backupDirectory = Directory(
+      '${songDirectory.path}${Platform.pathSeparator}SavedSongBackups',
+    );
+
+    if (!await backupDirectory.exists()) {
+      await backupDirectory.create(recursive: true);
+    }
+
+    return backupDirectory;
+  }
+
+  Future<List<File>> getSavedSongBackupFiles() async {
+    final backupDirectory = await getSavedSongBackupDirectory();
+
+    if (!await backupDirectory.exists()) {
+      return <File>[];
+    }
+
+    final files = backupDirectory.listSync().whereType<File>().where((file) {
+      final fileName = file.uri.pathSegments.last.toLowerCase();
+
+      return fileName.endsWith('.json');
+    }).toList();
+
+    files.sort((a, b) {
+      final aModified = a.lastModifiedSync();
+      final bModified = b.lastModifiedSync();
+      return bModified.compareTo(aModified);
+    });
+
+    return files;
+  }
+
+  Future<File?> createSavedSongBackup(File sourceFile) async {
+    try {
+      if (!await sourceFile.exists()) {
+        return null;
+      }
+
+      final backupDirectory = await getSavedSongBackupDirectory();
+      final displayName = sanitizeFileName(displayNameFromFile(sourceFile));
+      final timestamp = createExportTimestamp();
+
+      final backupFile = File(
+        '${backupDirectory.path}${Platform.pathSeparator}${displayName}_backup_$timestamp.json',
+      );
+
+      return await sourceFile.copy(backupFile.path);
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Create saved song backup failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      return null;
+    }
   }
 
   Future<Directory> getExportDirectory() async {
@@ -1412,6 +1908,15 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Future<void> openBackupsFolder() async {
+    final backupDirectory = await getSavedSongBackupDirectory();
+
+    await openDirectoryInFileExplorer(
+      directory: backupDirectory,
+      label: 'saved song backups',
+    );
+  }
+
   String createExportTimestamp() {
     final now = DateTime.now();
 
@@ -1429,7 +1934,7 @@ class _EditorScreenState extends State<EditorScreen> {
     return '$year-$month-${day}_$hour-$minute-$second';
   }
 
-  Future<SheetImageCapture> captureSheetAsPngBytes() async {
+  Future<SheetUiImageCapture> captureSheetAsUiImage() async {
     await WidgetsBinding.instance.endOfFrame;
 
     final renderObject = sheetExportKey.currentContext?.findRenderObject();
@@ -1449,17 +1954,78 @@ class _EditorScreenState extends State<EditorScreen> {
 
     final image = await renderObject.toImage(pixelRatio: exportPixelRatio);
 
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-    if (byteData == null) {
-      throw Exception('could not create PNG data');
-    }
-
-    return SheetImageCapture(
-      pngBytes: byteData.buffer.asUint8List(),
+    return SheetUiImageCapture(
+      image: image,
       logicalWidth: logicalWidth,
       logicalHeight: logicalHeight,
+      pixelRatio: exportPixelRatio,
     );
+  }
+
+  Future<SheetImageCapture> captureSheetAsPngBytes() async {
+    final capture = await captureSheetAsUiImage();
+
+    try {
+      final byteData = await capture.image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) {
+        throw Exception('could not create PNG data');
+      }
+
+      return SheetImageCapture(
+        pngBytes: byteData.buffer.asUint8List(),
+        logicalWidth: capture.logicalWidth,
+        logicalHeight: capture.logicalHeight,
+      );
+    } finally {
+      capture.image.dispose();
+    }
+  }
+
+  Future<Uint8List> cropUiImageToPngBytes({
+    required ui.Image sourceImage,
+    required int cropLeft,
+    required int cropTop,
+    required int cropWidth,
+    required int cropHeight,
+  }) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final sourceRect = Rect.fromLTWH(
+      cropLeft.toDouble(),
+      cropTop.toDouble(),
+      cropWidth.toDouble(),
+      cropHeight.toDouble(),
+    );
+
+    final destinationRect = Rect.fromLTWH(
+      0,
+      0,
+      cropWidth.toDouble(),
+      cropHeight.toDouble(),
+    );
+
+    canvas.drawImageRect(sourceImage, sourceRect, destinationRect, Paint());
+
+    final picture = recorder.endRecording();
+    final croppedImage = await picture.toImage(cropWidth, cropHeight);
+
+    try {
+      final byteData = await croppedImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) {
+        throw Exception('could not create cropped PNG data');
+      }
+
+      return byteData.buffer.asUint8List();
+    } finally {
+      croppedImage.dispose();
+    }
   }
 
   Future<void> showExportCompleteDialog({
@@ -1542,7 +2108,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> exportSheetAsPng() async {
     try {
       setState(() {
-        updateStatusFields('Exporting PNG...', StatusLevel.info);
+        updateStatusFields(loc.statusExportingPng, StatusLevel.info);
       });
 
       final capture = await captureSheetAsPngBytes();
@@ -1559,10 +2125,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         lastExportedFilePath = exportFile.path;
-        updateStatusFields(
-          'PNG export completed successfully.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusPngExportSuccess, StatusLevel.success);
       });
 
       await showExportCompleteDialog(exportFile: exportFile, exportType: 'PNG');
@@ -1577,7 +2140,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'PNG export failed: ${readableErrorMessage(error)}',
+          loc.statusPngExportFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -1585,27 +2148,71 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> exportSheetAsPdf() async {
+    SheetUiImageCapture? capture;
+
     try {
       setState(() {
-        updateStatusFields('Exporting PDF...', StatusLevel.info);
+        updateStatusFields(loc.statusExportingPdf, StatusLevel.info);
       });
 
-      final capture = await captureSheetAsPngBytes();
+      capture = await captureSheetAsUiImage();
 
       final document = pw.Document();
-      final sheetImage = pw.MemoryImage(capture.pngBytes);
 
-      document.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.letter.landscape,
-          margin: const pw.EdgeInsets.all(24),
-          build: (context) {
-            return pw.Center(
-              child: pw.Image(sheetImage, fit: pw.BoxFit.contain),
-            );
-          },
-        ),
-      );
+      final pageFormat = PdfPageFormat.letter.landscape;
+      const pageMargin = 24.0;
+
+      final usablePdfWidth = pageFormat.width - pageMargin * 2;
+      final usablePdfHeight = pageFormat.height - pageMargin * 2;
+
+      final calculatedLogicalPageWidth =
+          capture.logicalHeight * usablePdfWidth / usablePdfHeight;
+
+      final logicalPageWidth = calculatedLogicalPageWidth
+          .clamp(600.0, capture.logicalWidth)
+          .toDouble();
+
+      final unclampedPagePixelWidth = (logicalPageWidth * capture.pixelRatio)
+          .round();
+
+      final pagePixelWidth = unclampedPagePixelWidth < 1
+          ? 1
+          : unclampedPagePixelWidth > capture.image.width
+          ? capture.image.width
+          : unclampedPagePixelWidth;
+
+      int cropLeft = 0;
+
+      while (cropLeft < capture.image.width) {
+        final remainingWidth = capture.image.width - cropLeft;
+        final cropWidth = remainingWidth < pagePixelWidth
+            ? remainingWidth
+            : pagePixelWidth;
+
+        final croppedBytes = await cropUiImageToPngBytes(
+          sourceImage: capture.image,
+          cropLeft: cropLeft,
+          cropTop: 0,
+          cropWidth: cropWidth,
+          cropHeight: capture.image.height,
+        );
+
+        final sheetImage = pw.MemoryImage(croppedBytes);
+
+        document.addPage(
+          pw.Page(
+            pageFormat: pageFormat,
+            margin: const pw.EdgeInsets.all(pageMargin),
+            build: (context) {
+              return pw.Center(
+                child: pw.Image(sheetImage, fit: pw.BoxFit.contain),
+              );
+            },
+          ),
+        );
+
+        cropLeft += cropWidth;
+      }
 
       final exportDirectory = await getExportDirectory();
       final safeTitle = sanitizeFileName(getSongTitle());
@@ -1617,12 +2224,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
       await exportFile.writeAsBytes(await document.save());
 
+      if (!mounted) return;
+
       setState(() {
         lastExportedFilePath = exportFile.path;
-        updateStatusFields(
-          'PDF export completed successfully.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusPdfExportSuccess, StatusLevel.success);
       });
 
       await showExportCompleteDialog(exportFile: exportFile, exportType: 'PDF');
@@ -1637,10 +2243,12 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'PDF export failed: ${readableErrorMessage(error)}',
+          loc.statusPdfExportFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
+    } finally {
+      capture?.image.dispose();
     }
   }
 
@@ -1873,6 +2481,10 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
+      if (await file.exists()) {
+        await createSavedSongBackup(file);
+      }
+
       final songData = buildCurrentSongData();
 
       const encoder = JsonEncoder.withIndent('  ');
@@ -1902,6 +2514,370 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         updateStatusFields(
           loc.statusSaveFailed(readableErrorMessage(error)),
+          StatusLevel.error,
+        );
+      });
+    }
+  }
+
+  Future<void> renameCurrentSong() async {
+    String pendingTitle = getSongTitle();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.renameSongTitle),
+          content: TextFormField(
+            initialValue: pendingTitle,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: loc.renameSongLabel,
+              hintText: loc.renameSongHint,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              pendingTitle = value;
+            },
+            onFieldSubmitted: (value) {
+              Navigator.of(dialogContext).pop(value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(null);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(pendingTitle);
+              },
+              child: Text(loc.renameSongButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusRenameCancelled, StatusLevel.warning);
+      });
+      return;
+    }
+
+    final newTitle = result.trim();
+
+    if (newTitle.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusRenameEmptyTitle, StatusLevel.warning);
+      });
+      return;
+    }
+
+    try {
+      final oldLibraryPath = currentSongLibraryFilePath;
+      final newFile = await getSaveFileForTitle(newTitle);
+
+      if (oldLibraryPath != null && oldLibraryPath != newFile.path) {
+        final canOverwrite = await confirmOverwriteSongFile(
+          file: newFile,
+          songTitle: newTitle,
+        );
+
+        if (!canOverwrite) {
+          if (!mounted) return;
+
+          setState(() {
+            updateStatusFields(
+              loc.statusSaveCancelledOverwrite(newTitle),
+              StatusLevel.warning,
+            );
+          });
+          return;
+        }
+      }
+
+      if (await newFile.exists()) {
+        await createSavedSongBackup(newFile);
+      }
+
+      titleController.text = newTitle;
+
+      final songData = buildCurrentSongData();
+
+      const encoder = JsonEncoder.withIndent('  ');
+      await newFile.writeAsString(encoder.convert(songData));
+
+      if (oldLibraryPath != null && oldLibraryPath != newFile.path) {
+        final oldFile = File(oldLibraryPath);
+
+        if (await oldFile.exists()) {
+          await createSavedSongBackup(oldFile);
+          await oldFile.delete();
+        }
+
+        await forgetRecentSongFile(oldLibraryPath);
+      }
+
+      await deleteAutoBackupFileIfExists();
+      await rememberRecentSongFile(newFile.path);
+
+      if (!mounted) return;
+
+      setState(() {
+        currentSongLibraryFilePath = newFile.path;
+        lastSavedSongFilePath = newFile.path;
+        hasUnsavedChanges = false;
+        pendingSuriStart = null;
+        selectedNoteAnchor = null;
+        updateStatusFields(
+          loc.statusRenamedSong(newTitle),
+          StatusLevel.success,
+        );
+      });
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Rename song failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          loc.statusRenameFailed(readableErrorMessage(error)),
+          StatusLevel.error,
+        );
+      });
+    }
+  }
+
+  Future<void> duplicateCurrentSong() async {
+    final baseTitle = getSongTitle();
+    String pendingTitle = '$baseTitle ${loc.duplicateTitleSuffix}';
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.duplicateSongTitle),
+          content: TextFormField(
+            initialValue: pendingTitle,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: loc.duplicateSongLabel,
+              hintText: loc.duplicateSongHint,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              pendingTitle = value;
+            },
+            onFieldSubmitted: (value) {
+              Navigator.of(dialogContext).pop(value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(null);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(pendingTitle);
+              },
+              child: Text(loc.duplicateSongButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusDuplicateCancelled, StatusLevel.warning);
+      });
+      return;
+    }
+
+    final duplicateTitle = result.trim();
+
+    if (duplicateTitle.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusDuplicateEmptyTitle, StatusLevel.warning);
+      });
+      return;
+    }
+
+    try {
+      final duplicateFile = await getSaveFileForTitle(duplicateTitle);
+
+      final canOverwrite = await confirmOverwriteSongFile(
+        file: duplicateFile,
+        songTitle: duplicateTitle,
+      );
+
+      if (!canOverwrite) {
+        if (!mounted) return;
+
+        setState(() {
+          updateStatusFields(
+            loc.statusSaveCancelledOverwrite(duplicateTitle),
+            StatusLevel.warning,
+          );
+        });
+        return;
+      }
+
+      if (await duplicateFile.exists()) {
+        await createSavedSongBackup(duplicateFile);
+      }
+
+      titleController.text = duplicateTitle;
+
+      final songData = buildCurrentSongData();
+
+      const encoder = JsonEncoder.withIndent('  ');
+      await duplicateFile.writeAsString(encoder.convert(songData));
+
+      await deleteAutoBackupFileIfExists();
+      await rememberRecentSongFile(duplicateFile.path);
+
+      if (!mounted) return;
+
+      setState(() {
+        currentSongLibraryFilePath = duplicateFile.path;
+        lastSavedSongFilePath = duplicateFile.path;
+        hasUnsavedChanges = false;
+        pendingSuriStart = null;
+        selectedNoteAnchor = null;
+        updateStatusFields(
+          loc.statusDuplicatedSong(duplicateTitle),
+          StatusLevel.success,
+        );
+      });
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Duplicate song failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          loc.statusDuplicateFailed(readableErrorMessage(error)),
+          StatusLevel.error,
+        );
+      });
+    }
+  }
+
+  Future<void> revertToSavedSong() async {
+    if (currentSongLibraryFilePath == null) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          loc.statusNoSavedVersionToRevert,
+          StatusLevel.warning,
+        );
+      });
+      return;
+    }
+
+    final savedFile = File(currentSongLibraryFilePath!);
+
+    if (!await savedFile.exists()) {
+      if (!mounted) return;
+
+      setState(() {
+        currentSongLibraryFilePath = null;
+        lastSavedSongFilePath = null;
+        hasUnsavedChanges = true;
+        updateStatusFields(loc.statusSavedVersionMissing, StatusLevel.error);
+      });
+      return;
+    }
+
+    if (!mounted) return;
+
+    final shouldRevert = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.revertToSavedTitle),
+          content: Text(loc.revertToSavedBody),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(loc.revertToSavedButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldRevert != true) {
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(loc.statusRevertCancelled, StatusLevel.warning);
+      });
+      return;
+    }
+
+    try {
+      final loadedSuccessfully = await loadSongFromFile(
+        savedFile,
+        isLibraryFile: true,
+      );
+
+      if (!loadedSuccessfully) return;
+      if (!mounted) return;
+
+      setState(() {
+        hasUnsavedChanges = false;
+        pendingSuriStart = null;
+        selectedNoteAnchor = null;
+        updateStatusFields(loc.statusRevertedToSaved, StatusLevel.success);
+      });
+    } catch (error, stackTrace) {
+      await LocalErrorLogger.writeError(
+        source: 'Revert to saved song failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        updateStatusFields(
+          loc.statusRevertFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -2067,12 +3043,12 @@ class _EditorScreenState extends State<EditorScreen> {
           lastSavedSongFilePath = null;
           hasUnsavedChanges = true;
           updateStatusFields(
-            'Deleted "$deletedSongName". The current sheet is still open, but it is no longer saved.',
+            loc.statusDeletedCurrentSongFile(deletedSongName),
             StatusLevel.warning,
           );
         } else {
           updateStatusFields(
-            'Deleted saved song "$deletedSongName".',
+            loc.statusDeletedSavedSongFile(deletedSongName),
             StatusLevel.success,
           );
         }
@@ -2088,7 +3064,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       setState(() {
         updateStatusFields(
-          'Delete failed: ${readableErrorMessage(error)}',
+          loc.statusDeleteFailed(readableErrorMessage(error)),
           StatusLevel.error,
         );
       });
@@ -2301,6 +3277,52 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
               actions: [
                 TextButton(
+                  onPressed: recentSongFilePaths.isEmpty
+                      ? null
+                      : () async {
+                          final shouldClear = await showDialog<bool>(
+                            context: dialogContext,
+                            builder: (confirmContext) {
+                              return AlertDialog(
+                                title: Text(loc.clearRecentFilesTitle),
+                                content: Text(loc.clearRecentFilesBody),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(confirmContext).pop(false);
+                                    },
+                                    child: Text(loc.cancel),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(confirmContext).pop(true);
+                                    },
+                                    child: Text(loc.clear),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (shouldClear != true) return;
+
+                          recentSongFilePaths.clear();
+                          await saveRecentSongFiles();
+
+                          if (!mounted) return;
+
+                          setState(() {
+                            updateStatusFields(
+                              loc.statusClearedRecentFiles,
+                              StatusLevel.success,
+                            );
+                          });
+
+                          setDialogState(() {});
+                        },
+                  child: Text(loc.clearRecentFiles),
+                ),
+                TextButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop(null);
                   },
@@ -2324,10 +3346,7 @@ class _EditorScreenState extends State<EditorScreen> {
       if (!mounted) return;
 
       setState(() {
-        updateStatusFields(
-          'Recent file no longer exists. Removed it from the list.',
-          StatusLevel.warning,
-        );
+        updateStatusFields(loc.statusRecentFileMissing, StatusLevel.warning);
       });
       return;
     }
@@ -2367,10 +3386,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return false;
 
         setState(() {
-          updateStatusFields(
-            'Load failed: selected song file no longer exists.',
-            StatusLevel.error,
-          );
+          updateStatusFields(loc.statusLoadFileMissing, StatusLevel.error);
         });
 
         return false;
@@ -2400,10 +3416,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!mounted) return false;
 
         setState(() {
-          updateStatusFields(
-            'Load failed: this song file uses a newer file format. Please update the app.',
-            StatusLevel.error,
-          );
+          updateStatusFields(loc.statusLoadNewerFileFormat, StatusLevel.error);
         });
 
         return false;
@@ -2574,9 +3587,9 @@ class _EditorScreenState extends State<EditorScreen> {
         );
       });
 
-    if (rememberRecent) {
-      await rememberRecentSongFile(file.path);
-    }
+      if (rememberRecent) {
+        await rememberRecentSongFile(file.path);
+      }
       return true;
     } catch (error, stackTrace) {
       await LocalErrorLogger.writeError(
@@ -2714,33 +3727,241 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  Future<void> loadSampleSong() async {
+    final canContinue = await confirmUnsavedChangesBefore(
+      'loading the sample song',
+    );
+
+    if (!canContinue) return;
+    if (!mounted) return;
+
+    final shouldLoadSample = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.loadSampleSongTitle),
+          content: Text(loc.loadSampleSongBody),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: Text(loc.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(loc.loadSampleSongButton),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLoadSample != true) return;
+    if (!mounted) return;
+
+    saveUndoSnapshot();
+
+    setState(() {
+      titleController.text = loc.sampleSongTitle;
+      tempoController.text = '90';
+
+      selectedTuning = 'Honchoshi (本調子)';
+      selectedTotalMeasures = 8;
+      selectedZoom = 1.0;
+      selectedRepeatLength = 1;
+
+      selectedTabNumber = '0';
+      selectedRhythm = 'Quarter';
+      selectedTechnique = 'None';
+      selectedTool = EditorTool.write;
+
+      notes
+        ..clear()
+        ..addAll(const <TabNote>[
+          TabNote(
+            stringNumber: 1,
+            slot: 0,
+            durationSlots: 4,
+            tabNumber: '0',
+            rhythm: 'Quarter',
+            technique: 'None',
+          ),
+          TabNote(
+            stringNumber: 2,
+            slot: 4,
+            durationSlots: 4,
+            tabNumber: '3',
+            rhythm: 'Quarter',
+            technique: 'Oshi (押し) - オ',
+          ),
+          TabNote(
+            stringNumber: 3,
+            slot: 8,
+            durationSlots: 2,
+            tabNumber: '4',
+            rhythm: 'Eighth',
+            technique: 'Hajiki (弾き) - ハ',
+          ),
+          TabNote(
+            stringNumber: 3,
+            slot: 10,
+            durationSlots: 2,
+            tabNumber: '5',
+            rhythm: 'Eighth',
+            technique: 'None',
+          ),
+          TabNote(
+            stringNumber: 2,
+            slot: 12,
+            durationSlots: 4,
+            tabNumber: '6',
+            rhythm: 'Quarter',
+            technique: 'Sukui (救い) - ス',
+          ),
+          TabNote(
+            stringNumber: 1,
+            slot: 20,
+            durationSlots: 4,
+            tabNumber: '7',
+            rhythm: 'Quarter',
+            technique: 'Tataki (叩き) - タ / 叩',
+          ),
+          TabNote(
+            stringNumber: 2,
+            slot: 24,
+            durationSlots: 4,
+            tabNumber: '8',
+            rhythm: 'Quarter',
+            technique: 'Oshibachi (押し撥) - 押',
+          ),
+          TabNote(
+            stringNumber: 3,
+            slot: 28,
+            durationSlots: 4,
+            tabNumber: '9',
+            rhythm: 'Quarter',
+            technique: 'Suberi (滑り) - 滑',
+          ),
+          TabNote(
+            stringNumber: 1,
+            slot: 32,
+            durationSlots: 4,
+            tabNumber: '10',
+            rhythm: 'Quarter',
+            technique: 'None',
+          ),
+          TabNote(
+            stringNumber: 1,
+            slot: 36,
+            durationSlots: 4,
+            tabNumber: '11',
+            rhythm: 'Quarter',
+            technique: 'None',
+          ),
+          TabNote(
+            stringNumber: 2,
+            slot: 40,
+            durationSlots: 8,
+            tabNumber: '12',
+            rhythm: 'Half',
+            technique: 'Uchi (打ち) - ウ',
+          ),
+          TabNote(
+            stringNumber: 1,
+            slot: 64,
+            durationSlots: 4,
+            tabNumber: '13',
+            rhythm: 'Quarter',
+            technique: 'Bachi (撥) - バ',
+          ),
+          TabNote(
+            stringNumber: 2,
+            slot: 68,
+            durationSlots: 4,
+            tabNumber: '1#',
+            rhythm: 'Quarter',
+            technique: 'Tsuke (付) - ツ',
+          ),
+          TabNote(
+            stringNumber: 3,
+            slot: 72,
+            durationSlots: 8,
+            tabNumber: '14',
+            rhythm: 'Half',
+            technique: 'Keshi (消し) - ケ',
+          ),
+        ]);
+
+      rests
+        ..clear()
+        ..addAll(const <TabRest>[
+          TabRest(
+            stringNumber: 2,
+            slot: 16,
+            durationSlots: 4,
+            rhythm: 'Quarter',
+          ),
+          TabRest(stringNumber: 1, slot: 80, durationSlots: 8, rhythm: 'Half'),
+        ]);
+
+      suriSlides
+        ..clear()
+        ..addAll(const <SuriSlide>[
+          SuriSlide(stringNumber: 1, startSlot: 32, endSlot: 36),
+        ]);
+
+      simileRepeats
+        ..clear()
+        ..addAll(const <SimileRepeat>[
+          SimileRepeat(measureIndex: 3, repeatLength: 1),
+        ]);
+
+      lyricEntries
+        ..clear()
+        ..addAll(const <LyricEntry>[
+          LyricEntry(slot: 0, text: 'don'),
+          LyricEntry(slot: 4, text: 'tsu'),
+          LyricEntry(slot: 8, text: 'ru'),
+          LyricEntry(slot: 16, text: 'rest'),
+          LyricEntry(slot: 32, text: 'su'),
+          LyricEntry(slot: 36, text: 'ri'),
+        ]);
+
+      sectionLabels
+        ..clear()
+        ..addAll(const <SectionLabel>[
+          SectionLabel(measureIndex: 0, text: 'Intro'),
+          SectionLabel(measureIndex: 2, text: 'Suri'),
+          SectionLabel(measureIndex: 4, text: 'Outro'),
+        ]);
+
+      pendingSuriStart = null;
+      selectedNoteAnchor = null;
+
+      currentSongLibraryFilePath = null;
+      lastSavedSongFilePath = null;
+
+      hasUnsavedChanges = true;
+      updateStatusFields(loc.statusLoadedSampleSong, StatusLevel.success);
+    });
+  }
+
   void showAboutAppDialog() {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('About Shamisen Tab Composer'),
-          content: const SizedBox(
+          title: Text(loc.aboutDialogTitle),
+          content: SizedBox(
             width: 460,
-            child: Text(
-              'Shamisen Tab Composer Beta 0.2.0\n\n'
-              'A desktop shamisen tablature editor for creating, saving, loading, and exporting shamisen tab sheets.\n\n'
-              'Current beta features:\n'
-              '- Note input\n'
-              '- Rests\n'
-              '- Suri slide markings\n'
-              '- Lyrics under notes/rests\n'
-              '- Section labels\n'
-              '- Simile repeat marks\n'
-              '- Save/load song library\n'
-              '- Save Copy and Open File support\n'
-              '- PNG/PDF export\n'
-              '- Undo/Redo\n'
-              '- Keyboard shortcuts\n'
-              '- Autosave backup and recovery\n\n'
-              'Beta notice:\n'
-              'This version is ready for public testing. File formats, layout, and export behavior may still change before the stable 1.0 release.',
-              style: TextStyle(fontSize: 14, height: 1.35),
+            child: SingleChildScrollView(
+              child: Text(
+                loc.aboutDialogBody,
+                style: const TextStyle(fontSize: 14, height: 1.35),
+              ),
             ),
           ),
           actions: [
@@ -2761,45 +3982,41 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('How to Use Shamisen Tab Composer'),
-          content: const SizedBox(
+          title: Text(loc.helpDialogTitle),
+          content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
               child: Text(
-                'Basic Workflow\n'
-                '1. Choose a tab number, rhythm, and technique.\n'
-                '2. Click directly on a string line to place the tab number.\n'
-                '3. Click an existing note in Write mode to select and edit it.\n'
-                '4. Use Save to store the song in your local song library.\n'
-                '5. Use Load to open a saved song from your local song library.\n'
-                '6. Use Save Copy to save a JSON copy anywhere on your computer.\n'
-                '7. Use Open File to open a song file from anywhere on your computer.\n\n'
-                'Tools\n'
-                '8. Use PNG or PDF export to share or print the current sheet.\n\n'
-                'Autosave Recovery\n'
-                'The app keeps a local autosave backup while you work.\n'
-                'Use Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\n'
-                'Write: Place notes or select existing notes.\n'
-                'Erase: Smart erase for notes, rests, lyrics, Suri slides, repeats, and section labels.\n'
-                'Suri: Click two notes on the same string to add or remove a slide mark.\n'
-                'Rest: Place a rhythmic rest on a string line.\n'
-                'Repeat: Click a measure to add or remove a simile repeat mark.\n'
-                'Lyric: Click a note/rest timing slot to add lyrics under it.\n'
-                'Section: Click a measure to add labels like Intro, Verse, or Chorus.\n\n'
-                'Song Settings\n'
-                'Title: Used for the sheet title and save file name.\n'
-                'Tuning: Choose Honchoshi, Niagari, or Sansagari.\n'
-                'BPM: Set the tempo.\n'
-                'Measures: Control the length of the song.\n'
-                'Zoom: Adjust horizontal spacing.\n'
-                'Repeat: Choose one-measure or two-measure simile repeat.\n\n'
-                'Important Notes\n'
-                'Lyrics can only be added under an existing note or rest.\n'
-                'Suri slides must connect two notes on the same string.\n'
-                'Repeat marks cannot be placed over measures that already contain notes or rests.\n'
-                'New Song resets everything.\n'
-                'Clear Song clears the notation but does not reset all song settings.',
-                style: TextStyle(fontSize: 14, height: 1.35),
+                loc.helpDialogBody,
+                style: const TextStyle(fontSize: 14, height: 1.35),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: Text(loc.returnButton),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showKeyboardShortcutsDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(loc.keyboardShortcutsDialogTitle),
+          content: SizedBox(
+            width: 460,
+            child: SingleChildScrollView(
+              child: Text(
+                loc.keyboardShortcutsDialogBody,
+                style: const TextStyle(fontSize: 14, height: 1.45),
               ),
             ),
           ),
@@ -2821,67 +4038,14 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Version History'),
-          content: const SizedBox(
+          title: Text(loc.changelogDialogTitle),
+          content: SizedBox(
             width: 560,
             height: 460,
             child: SingleChildScrollView(
               child: Text(
-                'Shamisen Tab Composer Beta 0.2.0\n\n'
-                'First public beta release candidate for testing the core tablature editor.\n\n'
-                'Included features:\n'
-                '- Shamisen tab note input\n'
-                '- Three-string sheet layout\n'
-                '- Rhythm support: Whole, Half, Quarter, Eighth, Sixteenth\n'
-                '- Tab number selection\n'
-                '- Shamisen tuning metadata\n'
-                '- BPM metadata\n'
-                '- Measure count control\n'
-                '- Horizontal zoom control\n'
-                '- Left-hand technique markings\n'
-                '- Right-hand technique markings\n'
-                '- Oshibachi and Suberi above-note markings\n'
-                '- Suri slide markings\n'
-                '- Rest input\n'
-                '- Lyric input under notes and rests\n'
-                '- Section labels\n'
-                '- One-measure simile repeat marks\n'
-                '- Two-measure simile repeat marks\n'
-                '- Smart erase mode\n'
-                '- Selected-note editing\n'
-                '- Undo and redo\n'
-                '- Save and load local song files\n'
-                '- Delete saved songs from the Load window\n'
-                '- Save Copy song file support\n'
-                '- Open File song file support\n'
-                '- PNG export\n'
-                '- PDF export\n'
-                '- Open song library folder\n'
-                '- Open export folder\n'
-                '- Reveal last saved song file\n'
-                '- Reveal last exported file\n'
-                '- Keyboard shortcuts\n'
-                '- Help dialog\n'
-                '- About dialog\n\n'
-                '- Autosave backup\n'
-                '- Autosave recovery button\n'
-                '- Unsaved changes status\n'
-                'Known Beta Limitations:\n'
-                '- Windows desktop is the main testing platform right now.\n'
-                '- Export layout may need improvement for long songs.\n'
-                '- PDF export currently captures the visual sheet as displayed.\n'
-                '- Mobile layout is not ready.\n'
-                '- Save file format may change before stable release.\n'
-                '- More shamisen notation symbols still need to be added.\n\n'
-                'Next Planned Version: Beta 0.3\n\n'
-                'Planned improvements:\n'
-                '- Cleaner toolbar organization\n'
-                '- Better exported sheet layout\n'
-                '- More notation symbols\n'
-                '- Sample song files\n'
-                '- Better beginner instructions\n'
-                '- More testing feedback support',
-                style: TextStyle(fontSize: 14, height: 1.35),
+                loc.changelogDialogBody,
+                style: const TextStyle(fontSize: 14, height: 1.35),
               ),
             ),
           ),
@@ -3030,49 +4194,31 @@ class _EditorScreenState extends State<EditorScreen> {
 
       switch (tool) {
         case EditorTool.write:
-          updateStatusFields('Write mode.', StatusLevel.info);
+          updateStatusFields(loc.statusToolWrite, StatusLevel.info);
           break;
 
         case EditorTool.erase:
-          updateStatusFields(
-            'Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolErase, StatusLevel.info);
           break;
 
         case EditorTool.suri:
-          updateStatusFields(
-            'Suri mode: click the starting note, then ending note.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolSuri, StatusLevel.info);
           break;
 
         case EditorTool.rest:
-          updateStatusFields(
-            'Rest mode: click a line to place a rest.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolRest, StatusLevel.info);
           break;
 
         case EditorTool.repeat:
-          updateStatusFields(
-            'Repeat mode: click a measure to toggle a simile mark.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolRepeat, StatusLevel.info);
           break;
 
         case EditorTool.lyric:
-          updateStatusFields(
-            'Lyric mode: click a note/rest timing slot to add or edit lyrics.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolLyric, StatusLevel.info);
           break;
 
         case EditorTool.section:
-          updateStatusFields(
-            'Section mode: click a measure to add/edit a label.',
-            StatusLevel.info,
-          );
+          updateStatusFields(loc.statusToolSection, StatusLevel.info);
           break;
       }
     });
@@ -3555,7 +4701,7 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
 
       updateStatusFields(
-        'Selected note ${note.tabNumber} on String ${note.stringNumber}.',
+        loc.statusSelectedNote(note.tabNumber, note.stringNumber),
         StatusLevel.info,
       );
     });
@@ -3585,7 +4731,7 @@ class _EditorScreenState extends State<EditorScreen> {
     )) {
       setState(() {
         updateStatusFields(
-          'Cannot update selected note: rhythm overlaps a simile repeat measure.',
+          loc.statusSelectedNoteOverlapRepeat,
           StatusLevel.error,
         );
       });
@@ -3609,7 +4755,7 @@ class _EditorScreenState extends State<EditorScreen> {
       if (overlaps) {
         setState(() {
           updateStatusFields(
-            'Cannot update selected note: rhythm overlaps another note.',
+            loc.statusSelectedNoteOverlapNote,
             StatusLevel.error,
           );
         });
@@ -3618,7 +4764,6 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     for (final rest in rests) {
-
       final overlaps = notesOverlap(
         startA: oldNote.slot,
         durationA: updatedDurationSlots,
@@ -3629,7 +4774,7 @@ class _EditorScreenState extends State<EditorScreen> {
       if (overlaps) {
         setState(() {
           updateStatusFields(
-            'Cannot update selected note: rhythm overlaps a rest.',
+            loc.statusSelectedNoteOverlapRest,
             StatusLevel.error,
           );
         });
@@ -3663,7 +4808,7 @@ class _EditorScreenState extends State<EditorScreen> {
       selectedTool = EditorTool.write;
       pendingSuriStart = null;
 
-      updateStatusFields('Updated selected note.', StatusLevel.success);
+      updateStatusFields(loc.statusUpdatedSelectedNote, StatusLevel.success);
     });
   }
 
@@ -3755,10 +4900,7 @@ class _EditorScreenState extends State<EditorScreen> {
       durationSlots: durationSlots,
     )) {
       setState(() {
-        updateStatusFields(
-          'Cannot place note: this measure has a simile repeat.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceNoteRepeat, StatusLevel.error);
       });
       return;
     }
@@ -3785,20 +4927,14 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingRestIndex >= 0) {
       setState(() {
-        updateStatusFields(
-          'Cannot place note: rhythm overlaps a rest.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceNoteRest, StatusLevel.error);
       });
       return;
     }
 
     if (overlappingIndex >= 0) {
       setState(() {
-        updateStatusFields(
-          'Cannot place note: rhythm overlaps another note.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceNoteNote, StatusLevel.error);
       });
       return;
     }
@@ -3824,7 +4960,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
       pendingSuriStart = null;
       updateStatusFields(
-        'Placed and selected $selectedRhythm note.',
+        loc.statusPlacedSelectedNote(selectedRhythm),
         StatusLevel.success,
       );
     });
@@ -3838,10 +4974,7 @@ class _EditorScreenState extends State<EditorScreen> {
       durationSlots: durationSlots,
     )) {
       setState(() {
-        updateStatusFields(
-          'Cannot place rest: this measure has a simile repeat.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceRestRepeat, StatusLevel.error);
       });
       return;
     }
@@ -3860,10 +4993,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
-        updateStatusFields(
-          'Removed rest and attached lyric.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusRemovedRestAndLyric, StatusLevel.success);
       });
       return;
     }
@@ -3879,10 +5009,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingNoteIndex >= 0) {
       setState(() {
-        updateStatusFields(
-          'Cannot place rest: overlaps a note.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceRestNote, StatusLevel.error);
       });
       return;
     }
@@ -3898,10 +5025,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (overlappingRestIndex >= 0) {
       setState(() {
-        updateStatusFields(
-          'Cannot place rest: overlaps another rest.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusCannotPlaceRestRest, StatusLevel.error);
       });
       return;
     }
@@ -3919,7 +5043,10 @@ class _EditorScreenState extends State<EditorScreen> {
       rests.add(newRest);
       selectedNoteAnchor = null;
       pendingSuriStart = null;
-      updateStatusFields('Placed $selectedRhythm rest.', StatusLevel.success);
+      updateStatusFields(
+        loc.statusPlacedRest(selectedRhythm),
+        StatusLevel.success,
+      );
     });
   }
 
@@ -3949,7 +5076,7 @@ class _EditorScreenState extends State<EditorScreen> {
         pendingSuriStart = null;
         selectedNoteAnchor = null;
         updateStatusFields(
-          'Removed ${removedRepeat.repeatLength}-measure simile repeat.',
+          loc.statusRemovedRepeat(removedRepeat.repeatLength),
           StatusLevel.success,
         );
       });
@@ -3959,7 +5086,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (repeatLength == 1 && measureIndex == 0) {
       setState(() {
         updateStatusFields(
-          'A one-measure simile repeat cannot be placed in measure 1.',
+          loc.statusOneMeasureRepeatCannotBeFirst,
           StatusLevel.warning,
         );
       });
@@ -3969,7 +5096,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (repeatLength == 2 && measureIndex < 2) {
       setState(() {
         updateStatusFields(
-          'A two-measure simile repeat needs two previous measures to repeat.',
+          loc.statusTwoMeasureRepeatNeedsPreviousMeasures,
           StatusLevel.warning,
         );
       });
@@ -3979,7 +5106,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (measureIndex + repeatLength > selectedTotalMeasures) {
       setState(() {
         updateStatusFields(
-          'Not enough space for a $repeatLength-measure simile repeat here.',
+          loc.statusNotEnoughSpaceForRepeat(repeatLength),
           StatusLevel.warning,
         );
       });
@@ -3992,7 +5119,7 @@ class _EditorScreenState extends State<EditorScreen> {
     )) {
       setState(() {
         updateStatusFields(
-          'Cannot place simile repeat: selected measure range already has notes or rests.',
+          loc.statusCannotPlaceRepeatOverNotesOrRests,
           StatusLevel.error,
         );
       });
@@ -4005,7 +5132,7 @@ class _EditorScreenState extends State<EditorScreen> {
     )) {
       setState(() {
         updateStatusFields(
-          'Cannot place simile repeat: it overlaps another repeat mark.',
+          loc.statusCannotPlaceRepeatOverRepeat,
           StatusLevel.error,
         );
       });
@@ -4024,12 +5151,12 @@ class _EditorScreenState extends State<EditorScreen> {
 
       if (repeatLength == 1) {
         updateStatusFields(
-          'Added one-measure simile repeat to measure ${measureIndex + 1}.',
+          loc.statusAddedOneMeasureRepeat(measureIndex + 1),
           StatusLevel.success,
         );
       } else {
         updateStatusFields(
-          'Added two-measure simile repeat from measure ${measureIndex + 1} to ${measureIndex + 2}.',
+          loc.statusAddedTwoMeasureRepeat(measureIndex + 1, measureIndex + 2),
           StatusLevel.success,
         );
       }
@@ -4042,7 +5169,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (noteIndex < 0) {
       setState(() {
         updateStatusFields(
-          'Suri mode: click an existing note.',
+          loc.statusSuriClickExistingNote,
           StatusLevel.warning,
         );
       });
@@ -4058,10 +5185,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (pendingSuriStart == null) {
       setState(() {
         pendingSuriStart = clickedAnchor;
-        updateStatusFields(
-          'Suri start selected. Click the ending note.',
-          StatusLevel.info,
-        );
+        updateStatusFields(loc.statusSuriStartSelected, StatusLevel.info);
       });
       return;
     }
@@ -4071,10 +5195,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (start.stringNumber != clickedAnchor.stringNumber) {
       setState(() {
         pendingSuriStart = null;
-        updateStatusFields(
-          'Suri must connect notes on the same string.',
-          StatusLevel.error,
-        );
+        updateStatusFields(loc.statusSuriSameString, StatusLevel.error);
       });
       return;
     }
@@ -4082,10 +5203,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (start.slot == clickedAnchor.slot) {
       setState(() {
         pendingSuriStart = null;
-        updateStatusFields(
-          'Suri needs two different notes.',
-          StatusLevel.warning,
-        );
+        updateStatusFields(loc.statusSuriNeedsTwoNotes, StatusLevel.warning);
       });
       return;
     }
@@ -4111,7 +5229,7 @@ class _EditorScreenState extends State<EditorScreen> {
       setState(() {
         suriSlides.removeAt(existingSlideIndex);
         pendingSuriStart = null;
-        updateStatusFields('Removed Suri slide.', StatusLevel.success);
+        updateStatusFields(loc.statusRemovedSuriSlide, StatusLevel.success);
       });
       return;
     }
@@ -4128,14 +5246,17 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       pendingSuriStart = null;
-      updateStatusFields('Added Suri slide.', StatusLevel.success);
+      updateStatusFields(loc.statusAddedSuriSlide, StatusLevel.success);
     });
   }
 
   void deleteSelectedNote() {
     if (selectedNoteAnchor == null) {
       setState(() {
-        updateStatusFields('No selected note to delete.', StatusLevel.warning);
+        updateStatusFields(
+          loc.statusNoSelectedNoteToDelete,
+          StatusLevel.warning,
+        );
       });
       return;
     }
@@ -4151,10 +5272,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (noteIndex < 0) {
       setState(() {
         selectedNoteAnchor = null;
-        updateStatusFields(
-          'Selected note no longer exists.',
-          StatusLevel.warning,
-        );
+        updateStatusFields(loc.statusSelectedNoteMissing, StatusLevel.warning);
       });
       return;
     }
@@ -4178,7 +5296,7 @@ class _EditorScreenState extends State<EditorScreen> {
       pendingSuriStart = null;
       selectedNoteAnchor = null;
 
-      updateStatusFields('Deleted selected note.', StatusLevel.success);
+      updateStatusFields(loc.statusDeletedSelectedNote, StatusLevel.success);
     });
   }
 
@@ -4215,7 +5333,7 @@ class _EditorScreenState extends State<EditorScreen> {
         }
 
         updateStatusFields(
-          'Deleted note, related Suri slides, and attached lyric.',
+          loc.statusDeletedNoteRelatedItems,
           StatusLevel.success,
         );
       });
@@ -4237,17 +5355,14 @@ class _EditorScreenState extends State<EditorScreen> {
 
         selectedNoteAnchor = null;
         pendingSuriStart = null;
-        updateStatusFields(
-          'Deleted rest and attached lyric.',
-          StatusLevel.success,
-        );
+        updateStatusFields(loc.statusDeletedRestAndLyric, StatusLevel.success);
       });
 
       return;
     }
 
     setState(() {
-      updateStatusFields('No note or rest to erase here.', StatusLevel.warning);
+      updateStatusFields(loc.statusNoNoteOrRestToErase, StatusLevel.warning);
     });
   }
 
@@ -4267,7 +5382,7 @@ class _EditorScreenState extends State<EditorScreen> {
         suriSlides.removeAt(suriSlideIndex);
         pendingSuriStart = null;
         selectedNoteAnchor = null;
-        updateStatusFields('Deleted Suri slide.', StatusLevel.success);
+        updateStatusFields(loc.statusRemovedSuriSlide, StatusLevel.success);
       });
       return;
     }
@@ -4318,7 +5433,7 @@ class _EditorScreenState extends State<EditorScreen> {
         pendingSuriStart = null;
         selectedNoteAnchor = null;
         updateStatusFields(
-          'Deleted simile repeat from measure $measureNumber.',
+          loc.statusDeletedRepeatFromMeasure(measureNumber),
           StatusLevel.success,
         );
       });
@@ -4341,7 +5456,7 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     setState(() {
-      updateStatusFields('Nothing to erase here.', StatusLevel.warning);
+      updateStatusFields(loc.statusNothingToErase, StatusLevel.warning);
     });
   }
 
@@ -4816,6 +5931,22 @@ class _EditorScreenState extends State<EditorScreen> {
                                 ],
                               ),
 
+                              const SizedBox(width: 8),
+                              buildToolbarButton(
+                                icon: Icons.center_focus_strong,
+                                label: loc.resetView,
+                                onPressed: resetView,
+                                tooltip: loc.tooltipResetView,
+                              ),
+
+                              const SizedBox(width: 8),
+                              buildToolbarButton(
+                                icon: Icons.low_priority,
+                                label: loc.jumpToMeasure,
+                                onPressed: jumpToMeasure,
+                                tooltip: loc.tooltipJumpToMeasure,
+                              ),
+
                               buildToolbarSection(
                                 title: loc.noteInput,
                                 children: [
@@ -5045,6 +6176,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildToolbarButton(
+                                    icon: Icons.auto_awesome,
+                                    label: loc.sampleSong,
+                                    onPressed: loadSampleSong,
+                                    tooltip: loc.tooltipSampleSong,
+                                  ),
+
+                                  buildToolbarButton(
                                     icon: Icons.save,
                                     label: loc.save,
                                     onPressed: saveSong,
@@ -5052,10 +6190,31 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildToolbarButton(
+                                    icon: Icons.drive_file_rename_outline,
+                                    label: loc.renameSong,
+                                    onPressed: renameCurrentSong,
+                                    tooltip: loc.tooltipRenameSong,
+                                  ),
+
+                                  buildToolbarButton(
                                     icon: Icons.folder_open,
                                     label: loc.load,
                                     onPressed: loadSong,
                                     tooltip: loc.tooltipLoad,
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.copy,
+                                    label: loc.duplicateSong,
+                                    onPressed: duplicateCurrentSong,
+                                    tooltip: loc.tooltipDuplicateSong,
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.restore,
+                                    label: loc.revertToSaved,
+                                    onPressed: revertToSavedSong,
+                                    tooltip: loc.tooltipRevertToSaved,
                                   ),
 
                                   buildToolbarButton(
@@ -5084,6 +6243,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                     label: loc.recover,
                                     onPressed: recoverAutoBackup,
                                     tooltip: loc.tooltipRecover,
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.settings_backup_restore,
+                                    label: loc.restoreBackup,
+                                    onPressed: restoreSavedSongBackup,
+                                    tooltip: loc.tooltipRestoreBackup,
                                   ),
 
                                   buildToolbarButton(
@@ -5158,6 +6324,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                   ),
 
                                   buildToolbarButton(
+                                    icon: Icons.backup,
+                                    label: loc.backups,
+                                    onPressed: openBackupsFolder,
+                                    tooltip: loc.tooltipBackupsFolder,
+                                  ),
+
+                                  buildToolbarButton(
                                     icon: Icons.find_in_page,
                                     label: loc.lastExport,
                                     onPressed: revealLastExportedFile,
@@ -5174,6 +6347,13 @@ class _EditorScreenState extends State<EditorScreen> {
                                     label: loc.help,
                                     onPressed: showHelpDialog,
                                     tooltip: loc.tooltipHelp,
+                                  ),
+
+                                  buildToolbarButton(
+                                    icon: Icons.keyboard,
+                                    label: loc.keyboardShortcuts,
+                                    onPressed: showKeyboardShortcutsDialog,
+                                    tooltip: loc.tooltipKeyboardShortcuts,
                                   ),
 
                                   buildToolbarButton(

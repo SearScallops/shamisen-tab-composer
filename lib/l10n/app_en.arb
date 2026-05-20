@@ -1,447 +1,608 @@
 {
-  "@@locale": "en",
+"@@locale": "en",
 
-  "appTitle": "Shamisen Tab Composer Beta 0.2.0",
-  "language": "Language",
-  "english": "English",
-  "japanese": "Japanese",
-  "systemDefault": "System Default",
-  "ready": "Ready",
+"appTitle": "Shamisen Tab Composer Beta 0.2.0",
+"language": "Language",
+"english": "English",
+"japanese": "Japanese",
+"systemDefault": "System Default",
+"ready": "Ready",
 
-  "songSettings": "Song Settings",
-  "noteInput": "Note Input",
-  "notationTools": "Notation Tools",
-  "file": "File",
-  "edit": "Edit",
-  "export": "Export",
-  "folders": "Folders",
-  "help": "Help",
-  "status": "Status",
+"songSettings": "Song Settings",
+"noteInput": "Note Input",
+"notationTools": "Notation Tools",
+"file": "File",
+"edit": "Edit",
+"export": "Export",
+"folders": "Folders",
+"help": "Help",
+"status": "Status",
 
-  "title": "Title",
-  "tuning": "Tuning",
-  "bpm": "BPM",
-  "measures": "Measures",
-  "zoom": "Zoom",
-  "tabNumber": "Tab Number",
-  "rhythm": "Rhythm",
-  "technique": "Technique",
-  "repeat": "Repeat",
+"title": "Title",
+"tuning": "Tuning",
+"bpm": "BPM",
+"measures": "Measures",
+"zoom": "Zoom",
+"tabNumber": "Tab Number",
+"rhythm": "Rhythm",
+"technique": "Technique",
+"repeat": "Repeat",
 
-  "newSong": "New",
-  "save": "Save",
-  "load": "Load",
-  "recent": "Recent",
-  "saveCopy": "Save Copy",
-  "openFile": "Open File",
-  "recover": "Recover",
-  "clear": "Clear",
+"newSong": "New",
+"save": "Save",
+"load": "Load",
+"recent": "Recent",
+"saveCopy": "Save Copy",
+"openFile": "Open File",
+"recover": "Recover",
+"clear": "Clear",
 
-  "undo": "Undo",
-  "redo": "Redo",
+"undo": "Undo",
+"redo": "Redo",
 
-  "png": "PNG",
-  "pdf": "PDF",
+"png": "PNG",
+"pdf": "PDF",
 
-  "songs": "Songs",
-  "exports": "Exports",
-  "lastSave": "Last Save",
-  "lastExport": "Last Export",
+"songs": "Songs",
+"exports": "Exports",
+"lastSave": "Last Save",
+"lastExport": "Last Export",
 
-  "changes": "Changes",
-  "errorReport": "Error Report",
-  "about": "About",
+"changes": "Changes",
+"errorReport": "Error Report",
+"about": "About",
 
-  "write": "Write",
-  "erase": "Erase",
-  "suri": "Suri",
-  "rest": "Rest",
-  "lyric": "Lyric",
-  "section": "Section",
+"write": "Write",
+"erase": "Erase",
+"suri": "Suri",
+"rest": "Rest",
+"lyric": "Lyric",
+"section": "Section",
 
-  "unsavedChanges": "Unsaved changes",
-  "saved": "Saved",
-  "notSavedToLibrary": "Not saved to library",
-  "noLibraryFileSelected": "No library file selected",
+"unsavedChanges": "Unsaved changes",
+"saved": "Saved",
+"notSavedToLibrary": "Not saved to library",
+"noLibraryFileSelected": "No library file selected",
 
-  "libraryFile": "Library file: {fileName}",
-  "@libraryFile": {
-    "placeholders": {
-      "fileName": {
-        "type": "String"
-      }
-    }
-  },
-    "stringLabel": "String {stringNumber}",
-  "@stringLabel": {
-    "placeholders": {
-      "stringNumber": {
-        "type": "int"
-      }
-    }
-  },
+"libraryFile": "Library file: {fileName}",
+"@libraryFile": {
+"placeholders": {
+"fileName": {
+"type": "String"
+}
+}
+},
+"stringLabel": "String {stringNumber}",
+"@stringLabel": {
+"placeholders": {
+"stringNumber": {
+"type": "int"
+}
+}
+},
 
-  "lyricsLabel": "Lyrics",
+"lyricsLabel": "Lyrics",
 
-  "modeWrite": "Mode: Write",
-  "modeSmartErase": "Mode: Smart Erase",
-  "modeRest": "Mode: Rest",
-  "modeSimileRepeat": "Mode: Simile Repeat",
-  "modeLyric": "Mode: Lyric",
-  "modeSectionLabel": "Mode: Section Label",
-  "modeSuriSlide": "Mode: Suri Slide",
+"modeWrite": "Mode: Write",
+"modeSmartErase": "Mode: Smart Erase",
+"modeRest": "Mode: Rest",
+"modeSimileRepeat": "Mode: Simile Repeat",
+"modeLyric": "Mode: Lyric",
+"modeSectionLabel": "Mode: Section Label",
+"modeSuriSlide": "Mode: Suri Slide",
 
-    "metadataLine": "Tuning: {tuning}    Tempo: {tempoBpm} BPM",
-    "@metadataLine": {
-        "placeholders": {
-            "tuning": {
-                "type": "String"
-                },
-                "tempoBpm": {
-                    "type": "int"
-                }
-            }
-    },
-    "returnButton": "Return",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "overwrite": "Overwrite",
-    "saveFirst": "Save First",
-    "continueWithoutSaving": "Continue Without Saving",
-    "recoverBackup": "Recover Backup",
-    "openFileLocation": "Open File Location",
+"metadataLine": "Tuning: {tuning}    Tempo: {tempoBpm} BPM",
+"@metadataLine": {
+"placeholders": {
+"tuning": {
+"type": "String"
+},
+"tempoBpm": {
+"type": "int"
+}
+}
+},
+"returnButton": "Return",
+"cancel": "Cancel",
+"delete": "Delete",
+"overwrite": "Overwrite",
+"saveFirst": "Save First",
+"continueWithoutSaving": "Continue Without Saving",
+"recoverBackup": "Recover Backup",
+"openFileLocation": "Open File Location",
 
-    "unsavedChangesTitle": "Unsaved changes",
-    "overwriteSavedSongTitle": "Overwrite saved song?",
-    "recoverAutosaveTitle": "Recover autosave backup?",
-    "startNewSongTitle": "Start a new song?",
-    "clearCurrentSongTitle": "Clear current song?",
-    "loadSongTitle": "Load Song",
-    "recentFilesTitle": "Recent Files",
-    "noRecentFiles": "No recent files.",
-    "deleteSavedSongTitle": "Delete saved song?",
-    "saveCopyCompleteTitle": "Save Copy complete",
-    
-    "exportCompleteTitle": "{exportType} export complete",
-    "@exportCompleteTitle": {
-        "placeholders": {
-            "exportType": {
-            "type": "String"
-            }
-        }
-    },
-        "savedToPath": "Saved to:\n{filePath}",
-        "@savedToPath": {
-        "placeholders": {
-            "filePath": {
-            "type": "String"
-            }
-        }
-    },
-        "savedCopyToPath": "Saved copy to:\n{filePath}",
-        "@savedCopyToPath": {
-        "placeholders": {
-            "filePath": {
-            "type": "String"
-            }
-        }
-    },
-    "noSavedSongsFound": "No saved songs found.",
-    "noRecentFiles": "No recent files.",
-    "modifiedDate": "Modified: {modifiedDate}",
-    "@modifiedDate": {
-        "placeholders": {
-            "modifiedDate": {
-            "type": "String"
-            }
-        }
-    },
+"unsavedChangesTitle": "Unsaved changes",
+"overwriteSavedSongTitle": "Overwrite saved song?",
+"recoverAutosaveTitle": "Recover autosave backup?",
+"startNewSongTitle": "Start a new song?",
+"clearCurrentSongTitle": "Clear current song?",
+"loadSongTitle": "Load Song",
+"recentFilesTitle": "Recent Files",
+"noRecentFiles": "No recent files.",
+"deleteSavedSongTitle": "Delete saved song?",
+"saveCopyCompleteTitle": "Save Copy complete",
 
-    "unsavedChangesBody": "You have unsaved changes. What do you want to do before {actionName}?",
-    "@unsavedChangesBody": {
-        "placeholders": {
-            "actionName": {
-            "type": "String"
-            }
-        }
-    },
+"exportCompleteTitle": "{exportType} export complete",
+"@exportCompleteTitle": {
+"placeholders": {
+"exportType": {
+"type": "String"
+}
+}
+},
+"savedToPath": "Saved to:\n{filePath}",
+"@savedToPath": {
+"placeholders": {
+"filePath": {
+"type": "String"
+}
+}
+},
+"savedCopyToPath": "Saved copy to:\n{filePath}",
+"@savedCopyToPath": {
+"placeholders": {
+"filePath": {
+"type": "String"
+}
+}
+},
+"noSavedSongsFound": "No saved songs found.",
+"noRecentFiles": "No recent files.",
+"modifiedDate": "Modified: {modifiedDate}",
+"@modifiedDate": {
+"placeholders": {
+"modifiedDate": {
+"type": "String"
+}
+}
+},
 
-    "overwriteSavedSongBody": "A saved song named \"{songTitle}\" already exists.\n\nDo you want to replace it?",
-    "@overwriteSavedSongBody": {
-        "placeholders": {
-            "songTitle": {
-            "type": "String"
-            }
-        }
-    },
+"unsavedChangesBody": "You have unsaved changes. What do you want to do before {actionName}?",
+"@unsavedChangesBody": {
+"placeholders": {
+"actionName": {
+"type": "String"
+}
+}
+},
 
-    "recoverAutosaveBody": "This will replace the current sheet with the latest autosave backup. Use this only if you want to restore recent unsaved work.",
+"overwriteSavedSongBody": "A saved song named \"{songTitle}\" already exists.\n\nDo you want to replace it?",
+"@overwriteSavedSongBody": {
+"placeholders": {
+"songTitle": {
+"type": "String"
+}
+}
+},
 
-    "startNewSongBody": "This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom.",
+"recoverAutosaveBody": "This will replace the current sheet with the latest autosave backup. Use this only if you want to restore recent unsaved work.",
 
-    "clearCurrentSongBody": "This will remove all notes, rests, Suri slides, lyrics, repeats, and section labels. Song settings will stay the same.",
+"startNewSongBody": "This will clear the current sheet and reset the title, tuning, tempo, measures, and zoom.",
 
-    "deleteCurrentSongBody": "Delete \"{songName}\"? This is the song currently open in the editor.\n\nThe sheet will stay open, but it will become unsaved.",
-    "@deleteCurrentSongBody": {
-        "placeholders": {
-            "songName": {
-            "type": "String"
-            }
-        }
-    },
+"clearCurrentSongBody": "This will remove all notes, rests, Suri slides, lyrics, repeats, and section labels. Song settings will stay the same.",
 
-    "deleteSavedSongBody": "Delete \"{songName}\"? This cannot be undone.",
-    "@deleteSavedSongBody": {
-        "placeholders": {
-            "songName": {
-            "type": "String"
-            }
-        }
-    },
+"deleteCurrentSongBody": "Delete \"{songName}\"? This is the song currently open in the editor.\n\nThe sheet will stay open, but it will become unsaved.",
+"@deleteCurrentSongBody": {
+"placeholders": {
+"songName": {
+"type": "String"
+}
+}
+},
 
-    "removeFromRecentFiles": "Remove from recent files",
+"deleteSavedSongBody": "Delete \"{songName}\"? This cannot be undone.",
+"@deleteSavedSongBody": {
+"placeholders": {
+"songName": {
+"type": "String"
+}
+}
+},
 
-    "tooltipWrite": "Write note (Ctrl + 1)",
-    "tooltipErase": "Smart erase (Ctrl + 2)",
-    "tooltipSuri": "Suri slide mode (Ctrl + 3)",
-    "tooltipRest": "Rest mode (Ctrl + 4)",
-    "tooltipRepeat": "Simile repeat mode (Ctrl + 5)",
-    "tooltipLyric": "Lyric mode (Ctrl + 6)",
-    "tooltipSection": "Section label mode (Ctrl + 7)",
+"removeFromRecentFiles": "Remove from recent files",
 
-    "tooltipNewSong": "Start a new song",
-    "tooltipSave": "Save song to the local song library",
-    "tooltipLoad": "Load song from the local song library",
-    "tooltipRecent": "Open a recently used song file",
-    "tooltipSaveCopy": "Save a JSON copy anywhere on your computer without changing the active library file",
-    "tooltipOpenFile": "Open a song file from anywhere on your computer",
-    "tooltipRecover": "Recover autosave backup",
-    "tooltipClear": "Clear current song notation",
+"tooltipWrite": "Write note (Ctrl + 1)",
+"tooltipErase": "Smart erase (Ctrl + 2)",
+"tooltipSuri": "Suri slide mode (Ctrl + 3)",
+"tooltipRest": "Rest mode (Ctrl + 4)",
+"tooltipRepeat": "Simile repeat mode (Ctrl + 5)",
+"tooltipLyric": "Lyric mode (Ctrl + 6)",
+"tooltipSection": "Section label mode (Ctrl + 7)",
 
-    "tooltipUndo": "Undo last action",
-    "tooltipRedo": "Redo last action",
+"tooltipNewSong": "Start a new song",
+"tooltipSave": "Save song to the local song library",
+"tooltipLoad": "Load song from the local song library",
+"tooltipRecent": "Open a recently used song file",
+"tooltipSaveCopy": "Save a JSON copy anywhere on your computer without changing the active library file",
+"tooltipOpenFile": "Open a song file from anywhere on your computer",
+"tooltipRecover": "Recover autosave backup",
+"tooltipClear": "Clear current song notation",
 
-    "tooltipExportPng": "Export sheet as PNG image",
-    "tooltipExportPdf": "Export sheet as PDF document",
+"tooltipUndo": "Undo last action",
+"tooltipRedo": "Redo last action",
 
-    "tooltipSongsFolder": "Open song library folder",
-    "tooltipExportsFolder": "Open export folder",
-    "tooltipLastSave": "Show last saved song file",
-    "tooltipLastExport": "Show last exported file",
+"tooltipExportPng": "Export sheet as PNG image",
+"tooltipExportPdf": "Export sheet as PDF document",
 
-    "tooltipHelp": "Help / Instructions",
-    "tooltipChanges": "Version history",
-    "tooltipErrorReport": "Export local error log",
-    "tooltipAbout": "About app",
+"tooltipSongsFolder": "Open song library folder",
+"tooltipExportsFolder": "Open export folder",
+"tooltipLastSave": "Show last saved song file",
+"tooltipLastExport": "Show last exported file",
 
-    "tooltipZoomOut": "Zoom out",
-    "tooltipZoomIn": "Zoom in",
+"tooltipHelp": "Help / Instructions",
+"tooltipChanges": "Version history",
+"tooltipErrorReport": "Export local error log",
+"tooltipAbout": "About app",
 
-    "statusLanguageSystem": "Language set to system default.",
-    "statusLanguageJapanese": "Language set to Japanese.",
-    "statusLanguageEnglish": "Language set to English.",
+"tooltipZoomOut": "Zoom out",
+"tooltipZoomIn": "Zoom in",
 
-    "statusUpdatedTitle": "Updated song title.",
-    "statusSelectedTuning": "Selected tuning: {tuning}.",
-    "@statusSelectedTuning": {
-        "placeholders": {
-            "tuning": {
-            "type": "String"
-            }
-        }
-    },
+"statusLanguageSystem": "Language set to system default.",
+"statusLanguageJapanese": "Language set to Japanese.",
+"statusLanguageEnglish": "Language set to English.",
 
-    "statusTempoPositiveNumber": "Tempo should be a positive number.",
-    "statusUpdatedTempo": "Updated tempo to {tempoBpm} BPM.",
-    "@statusUpdatedTempo": {
-        "placeholders": {
-            "tempoBpm": {
-            "type": "int"
-            }
-        }
-    },
+"statusUpdatedTitle": "Updated song title.",
+"statusSelectedTuning": "Selected tuning: {tuning}.",
+"@statusSelectedTuning": {
+"placeholders": {
+"tuning": {
+"type": "String"
+}
+}
+},
 
-    "statusSetMeasures": "Set song length to {measureCount} measures.",
-    "@statusSetMeasures": {
-        "placeholders": {
-            "measureCount": {
-            "type": "int"
-            }
-        }
-    },
+"statusTempoPositiveNumber": "Tempo should be a positive number.",
+"statusUpdatedTempo": "Updated tempo to {tempoBpm} BPM.",
+"@statusUpdatedTempo": {
+"placeholders": {
+"tempoBpm": {
+"type": "int"
+}
+}
+},
 
-    "statusSetMeasuresRemovedItems": "Set song length to {measureCount} measures. Removed {removedCount} out-of-range item(s).",
-    "@statusSetMeasuresRemovedItems": {
-    "placeholders": {
-            "measureCount": {
-            "type": "int"
-            },
-            "removedCount": {
-            "type": "int"
-            }
-        }
-    },
+"statusSetMeasures": "Set song length to {measureCount} measures.",
+"@statusSetMeasures": {
+"placeholders": {
+"measureCount": {
+"type": "int"
+}
+}
+},
 
-    "statusResetZoom": "Reset zoom to 100%.",
-    "statusSetZoom": "Set zoom to {zoomPercent}%.",
-    "@statusSetZoom": {
-        "placeholders": {
-            "zoomPercent": {
-            "type": "int"
-            }
-        }
-    },
-    "statusMinimumZoom": "Already at minimum zoom.",
-    "statusMaximumZoom": "Already at maximum zoom.",
+"statusSetMeasuresRemovedItems": "Set song length to {measureCount} measures. Removed {removedCount} out-of-range item(s).",
+"@statusSetMeasuresRemovedItems": {
+"placeholders": {
+"measureCount": {
+"type": "int"
+},
+"removedCount": {
+"type": "int"
+}
+}
+},
 
-    "statusSelectedTabNumber": "Selected tab number {tabNumber}.",
-    "@statusSelectedTabNumber": {
-        "placeholders": {
-            "tabNumber": {
-            "type": "String"
-            }
-        }
-    },
+"statusResetZoom": "Reset zoom to 100%.",
+"statusSetZoom": "Set zoom to {zoomPercent}%.",
+"@statusSetZoom": {
+"placeholders": {
+"zoomPercent": {
+"type": "int"
+}
+}
+},
+"statusMinimumZoom": "Already at minimum zoom.",
+"statusMaximumZoom": "Already at maximum zoom.",
 
-    "statusSelectedRhythm": "Selected {rhythm} rhythm: {slotCount} slots.",
-    "@statusSelectedRhythm": {
-        "placeholders": {
-            "rhythm": {
-            "type": "String"
-            },
-            "slotCount": {
-            "type": "int"
-            }
-        }
-    },
+"statusSelectedTabNumber": "Selected tab number {tabNumber}.",
+"@statusSelectedTabNumber": {
+"placeholders": {
+"tabNumber": {
+"type": "String"
+}
+}
+},
 
-    "statusSelectedTechnique": "Selected technique: {technique}.",
-    "@statusSelectedTechnique": {
-    "placeholders": {
-            "technique": {
-            "type": "String"
-            }
-        }
-    },
+"statusSelectedRhythm": "Selected {rhythm} rhythm: {slotCount} slots.",
+"@statusSelectedRhythm": {
+"placeholders": {
+"rhythm": {
+"type": "String"
+},
+"slotCount": {
+"type": "int"
+}
+}
+},
 
-    "statusSelectedRepeat": "Selected {repeatName} repeat.",
-    "@statusSelectedRepeat": {
-    "placeholders": {
-            "repeatName": {
-            "type": "String"
-            }
-        }
-    },
+"statusSelectedTechnique": "Selected technique: {technique}.",
+"@statusSelectedTechnique": {
+"placeholders": {
+"technique": {
+"type": "String"
+}
+}
+},
 
-    "oneMeasure": "one-measure",
-    "twoMeasure": "two-measure",
+"statusSelectedRepeat": "Selected {repeatName} repeat.",
+"@statusSelectedRepeat": {
+"placeholders": {
+"repeatName": {
+"type": "String"
+}
+}
+},
 
-    "statusNothingToUndo": "Nothing to undo.",
-    "statusUndidLastAction": "Undid last action.",
-    "statusNothingToRedo": "Nothing to redo.",
-    "statusRedidLastAction": "Redid last action.",
-    "statusClearedSelection": "Cleared selection.",
+"oneMeasure": "one-measure",
+"twoMeasure": "two-measure",
 
-    "statusStartedNewSong": "Started new song.",
-    "statusClearedSong": "Cleared song.",
+"statusNothingToUndo": "Nothing to undo.",
+"statusUndidLastAction": "Undid last action.",
+"statusNothingToRedo": "Nothing to redo.",
+"statusRedidLastAction": "Redid last action.",
+"statusClearedSelection": "Cleared selection.",
 
-    "statusSavedSong": "Saved \"{songTitle}\" successfully.",
-    "@statusSavedSong": {
-        "placeholders": {
-            "songTitle": {
-            "type": "String"
-            }
-        }
-    },
+"statusStartedNewSong": "Started new song.",
+"statusClearedSong": "Cleared song.",
 
-    "statusSaveCancelledOverwrite": "Save cancelled to avoid overwriting \"{songTitle}\".",
-    "@statusSaveCancelledOverwrite": {
-        "placeholders": {
-            "songTitle": {
-            "type": "String"
-            }
-        }
-    },
+"statusSavedSong": "Saved \"{songTitle}\" successfully.",
+"@statusSavedSong": {
+"placeholders": {
+"songTitle": {
+"type": "String"
+}
+}
+},
 
-    "statusSaveFailed": "Save failed: {errorMessage}",
-        "@statusSaveFailed": {
-        "placeholders": {
-            "errorMessage": {
-            "type": "String"
-            }
-        }
-    },
+"statusSaveCancelledOverwrite": "Save cancelled to avoid overwriting \"{songTitle}\".",
+"@statusSaveCancelledOverwrite": {
+"placeholders": {
+"songTitle": {
+"type": "String"
+}
+}
+},
 
-    "statusLoadedSong": "Loaded \"{songTitle}\" successfully.",
-    "@statusLoadedSong": {
-        "placeholders": {
-            "songTitle": {
-            "type": "String"
-            }
-        }
-    },
+"statusSaveFailed": "Save failed: {errorMessage}",
+"@statusSaveFailed": {
+"placeholders": {
+"errorMessage": {
+"type": "String"
+}
+}
+},
 
-    "statusLoadFailed": "Load failed: {errorMessage}",
-    "@statusLoadFailed": {
-        "placeholders": {
-            "errorMessage": {
-            "type": "String"
-            }
-        }
-    },
+"statusLoadedSong": "Loaded \"{songTitle}\" successfully.",
+"@statusLoadedSong": {
+"placeholders": {
+"songTitle": {
+"type": "String"
+}
+}
+},
 
-    "statusSaveCopyCancelled": "Save Copy cancelled.",
-    "statusSaveCopySuccess": "Saved song copy successfully. Your active library file was not changed.",
-    "statusSaveCopyFailed": "Save Copy failed: {errorMessage}",
-    "@statusSaveCopyFailed": {
-        "placeholders": {
-            "errorMessage": {
-            "type": "String"
-            }
-        }
-    },
+"statusLoadFailed": "Load failed: {errorMessage}",
+"@statusLoadFailed": {
+"placeholders": {
+"errorMessage": {
+"type": "String"
+}
+}
+},
 
-    "statusOpenFileCancelled": "Open File cancelled.",
-    "statusOpenFileMissing": "Open File failed: selected file does not exist.",
-    "statusOpenFileSuccess": "Opened song file successfully. Use Save to add it to your song library.",
-    "statusOpenFileFailed": "Open File failed: {errorMessage}",
-    "@statusOpenFileFailed": {
-        "placeholders": {
-            "errorMessage": {
-            "type": "String"
-            }
-        }
-    },
+"statusSaveCopyCancelled": "Save Copy cancelled.",
+"statusSaveCopySuccess": "Saved song copy successfully. Your active library file was not changed.",
+"statusSaveCopyFailed": "Save Copy failed: {errorMessage}",
+"@statusSaveCopyFailed": {
+"placeholders": {
+"errorMessage": {
+"type": "String"
+}
+}
+},
 
-    "zoomOutButton": "Zoom -",
-    "zoomInButton": "Zoom +",
-    "deleteSavedSongTooltip": "Delete saved song",
+"statusOpenFileCancelled": "Open File cancelled.",
+"statusOpenFileMissing": "Open File failed: selected file does not exist.",
+"statusOpenFileSuccess": "Opened song file successfully. Use Save to add it to your song library.",
+"statusOpenFileFailed": "Open File failed: {errorMessage}",
+"@statusOpenFileFailed": {
+"placeholders": {
+"errorMessage": {
+"type": "String"
+}
+}
+},
 
-    "lyricDialogTitle": "Lyric",
-    "lyricTextLabel": "Lyric text",
-    "lyricTextHint": "Example: sakura / さくら / 桜",
+"zoomOutButton": "Zoom -",
+"zoomInButton": "Zoom +",
+"deleteSavedSongTooltip": "Delete saved song",
 
-    "sectionDialogTitle": "Section label for measure {measureNumber}",
-    "@sectionDialogTitle": {
-        "placeholders": {
-            "measureNumber": {
-            "type": "int"
-            }
-        }
-    },
-    
-    "sectionLabelText": "Section label",
-    "sectionLabelHint": "Example: Intro / Verse / Chorus",
+"lyricDialogTitle": "Lyric",
+"lyricTextLabel": "Lyric text",
+"lyricTextHint": "Example: sakura / さくら / 桜",
 
-    "statusClickInsideMeasureArea": "Click inside the song measure area.",
-    "statusPlaceNoteOrRestBeforeLyric": "Place a note or rest first, then add lyrics under it.",
-    "statusNoLyricAdded": "No lyric added.",
-    "statusDeletedLyric": "Deleted lyric.",
-    "statusUpdatedLyric": "Updated lyric.",
-    "statusAddedLyric": "Added lyric under note/rest.",
+"sectionDialogTitle": "Section label for measure {measureNumber}",
+"@sectionDialogTitle": {
+"placeholders": {
+"measureNumber": {
+"type": "int"
+}
+}
+},
 
-    "statusNoSectionLabelAdded": "No section label added.",
-    "statusDeletedSectionLabel": "Deleted section label.",
-    "statusUpdatedSectionLabel": "Updated section label.",
-    "statusAddedSectionLabel": "Added section label."
+"sectionLabelText": "Section label",
+"sectionLabelHint": "Example: Intro / Verse / Chorus",
+
+"statusClickInsideMeasureArea": "Click inside the song measure area.",
+"statusPlaceNoteOrRestBeforeLyric": "Place a note or rest first, then add lyrics under it.",
+"statusNoLyricAdded": "No lyric added.",
+"statusDeletedLyric": "Deleted lyric.",
+"statusUpdatedLyric": "Updated lyric.",
+"statusAddedLyric": "Added lyric under note/rest.",
+
+"statusNoSectionLabelAdded": "No section label added.",
+"statusDeletedSectionLabel": "Deleted section label.",
+"statusUpdatedSectionLabel": "Updated section label.",
+"statusAddedSectionLabel": "Added section label.",
+"statusAutosaveFound": "Autosave backup found. Use Recover Autosave Backup if you need it.",
+
+"statusAutosaveFailed": "Autosave failed: {errorMessage}",
+"statusNoAutosaveBackup": "No autosave backup found.",
+"statusRecoveredAutosave": "Recovered autosave backup. Use Save to store it as a normal song.",
+"statusAutosaveRecoveryFailed": "Autosave recovery failed: {errorMessage}",
+
+"statusExportingPng": "Exporting PNG...",
+"statusExportingPdf": "Exporting PDF...",
+"statusPngExportSuccess": "PNG export completed successfully.",
+"statusPdfExportSuccess": "PDF export completed successfully.",
+"statusPngExportFailed": "PNG export failed: {errorMessage}",
+"statusPdfExportFailed": "PDF export failed: {errorMessage}",
+
+"statusToolWrite": "Write mode.",
+"statusToolErase": "Erase mode: click notes, rests, lyrics, Suri slides, repeats, or section labels.",
+"statusToolSuri": "Suri mode: click the starting note, then ending note.",
+"statusToolRest": "Rest mode: click a line to place a rest.",
+"statusToolRepeat": "Repeat mode: click a measure to toggle a simile mark.",
+"statusToolLyric": "Lyric mode: click a note/rest timing slot to add or edit lyrics.",
+"statusToolSection": "Section mode: click a measure to add/edit a label.",
+
+"statusDeletedCurrentSongFile": "Deleted \"{songName}\". The current sheet is still open, but it is no longer saved.",
+"statusDeletedSavedSongFile": "Deleted saved song \"{songName}\".",
+"statusDeleteFailed": "Delete failed: {errorMessage}",
+
+"statusRecentFileMissing": "Recent file no longer exists. Removed it from the list.",
+"statusLoadFileMissing": "Load failed: selected song file no longer exists.",
+"statusLoadNewerFileFormat": "Load failed: this song file uses a newer file format. Please update the app.",
+
+"statusSelectedNote": "Selected note {tabNumber} on String {stringNumber}.",
+"statusUpdatedSelectedNote": "Updated selected note.",
+"statusSelectedNoteOverlapRepeat": "Cannot update selected note: rhythm overlaps a simile repeat measure.",
+"statusSelectedNoteOverlapNote": "Cannot update selected note: rhythm overlaps another note.",
+"statusSelectedNoteOverlapRest": "Cannot update selected note: rhythm overlaps a rest.",
+
+"statusCannotPlaceNoteRepeat": "Cannot place note: this measure has a simile repeat.",
+"statusCannotPlaceNoteRest": "Cannot place note: rhythm overlaps a rest.",
+"statusCannotPlaceNoteNote": "Cannot place note: rhythm overlaps another note.",
+"statusPlacedSelectedNote": "Placed and selected {rhythm} note.",
+
+"statusCannotPlaceRestRepeat": "Cannot place rest: this measure has a simile repeat.",
+"statusRemovedRestAndLyric": "Removed rest and attached lyric.",
+"statusCannotPlaceRestNote": "Cannot place rest: overlaps a note.",
+"statusCannotPlaceRestRest": "Cannot place rest: overlaps another rest.",
+"statusPlacedRest": "Placed {rhythm} rest.",
+
+"statusSuriClickExistingNote": "Suri mode: click an existing note.",
+"statusSuriStartSelected": "Suri start selected. Click the ending note.",
+"statusSuriSameString": "Suri must connect notes on the same string.",
+"statusSuriNeedsTwoNotes": "Suri needs two different notes.",
+"statusRemovedSuriSlide": "Removed Suri slide.",
+"statusAddedSuriSlide": "Added Suri slide.",
+
+"statusRemovedRepeat": "Removed {repeatLength}-measure simile repeat.",
+"statusOneMeasureRepeatCannotBeFirst": "A one-measure simile repeat cannot be placed in measure 1.",
+"statusTwoMeasureRepeatNeedsPreviousMeasures": "A two-measure simile repeat needs two previous measures to repeat.",
+"statusNotEnoughSpaceForRepeat": "Not enough space for a {repeatLength}-measure simile repeat here.",
+"statusCannotPlaceRepeatOverNotesOrRests": "Cannot place simile repeat: selected measure range already has notes or rests.",
+"statusCannotPlaceRepeatOverRepeat": "Cannot place simile repeat: it overlaps another repeat mark.",
+"statusAddedOneMeasureRepeat": "Added one-measure simile repeat to measure {measureNumber}.",
+"statusAddedTwoMeasureRepeat": "Added two-measure simile repeat from measure {startMeasure} to {endMeasure}.",
+
+"statusNoSelectedNoteToDelete": "No selected note to delete.",
+"statusSelectedNoteMissing": "Selected note no longer exists.",
+"statusDeletedSelectedNote": "Deleted selected note.",
+"statusDeletedNoteRelatedItems": "Deleted note, related Suri slides, and attached lyric.",
+"statusDeletedRestAndLyric": "Deleted rest and attached lyric.",
+"statusNoNoteOrRestToErase": "No note or rest to erase here.",
+"statusDeletedRepeatFromMeasure": "Deleted simile repeat from measure {measureNumber}.",
+"statusNothingToErase": "Nothing to erase here.",
+
+"aboutDialogTitle": "About Shamisen Tab Composer",
+"aboutDialogBody": "Shamisen Tab Composer Beta 0.2.0\n\nA desktop shamisen tablature editor for creating, saving, loading, and exporting shamisen tab sheets.\n\nCurrent beta features:\n- Note input\n- Rests\n- Suri slide markings\n- Lyrics under notes/rests\n- Section labels\n- Simile repeat marks\n- Save/load song library\n- Save Copy and Open File support\n- PNG/PDF export\n- Undo/Redo\n- Keyboard shortcuts\n- Autosave backup and recovery\n\nBeta notice:\nThis version is ready for public testing. File formats, layout, and export behavior may still change before the stable 1.0 release.",
+
+"helpDialogTitle": "How to Use Shamisen Tab Composer",
+"helpDialogBody": "Basic Workflow\n1. Choose a tab number, rhythm, and technique.\n2. Click directly on a string line to place the tab number.\n3. Click an existing note in Write mode to select and edit it.\n4. Use Save to store the song in your local song library.\n5. Use Load to open a saved song from your local song library.\n6. Use Save Copy to save a JSON copy anywhere on your computer.\n7. Use Open File to open a song file from anywhere on your computer.\n\nTools\n8. Use PNG or PDF export to share or print the current sheet.\n\nAutosave Recovery\nThe app keeps a local autosave backup while you work.\nUse Recover Autosave Backup if the app closes unexpectedly or you need to restore recent work.\n\nWrite: Place notes or select existing notes.\nErase: Smart erase for notes, rests, lyrics, Suri slides, repeats, and section labels.\nSuri: Click two notes on the same string to add or remove a slide mark.\nRest: Place a rhythmic rest on a string line.\nRepeat: Click a measure to add or remove a simile repeat mark.\nLyric: Click a note/rest timing slot to add lyrics under it.\nSection: Click a measure to add labels like Intro, Verse, or Chorus.\n\nSong Settings\nTitle: Used for the sheet title and save file name.\nTuning: Choose Honchoshi, Niagari, or Sansagari.\nBPM: Set the tempo.\nMeasures: Control the length of the song.\nZoom: Adjust horizontal spacing.\nRepeat: Choose one-measure or two-measure simile repeat.\n\nImportant Notes\nLyrics can only be added under an existing note or rest.\nSuri slides must connect two notes on the same string.\nRepeat marks cannot be placed over measures that already contain notes or rests.\nNew Song resets everything.\nClear Song clears the notation but does not reset all song settings.",
+
+"changelogDialogTitle": "Version History",
+"changelogDialogBody": "Shamisen Tab Composer Beta 0.2.0\n\nFirst public beta release candidate for testing the core tablature editor.\n\nIncluded features:\n- Shamisen tab note input\n- Three-string sheet layout\n- Rhythm support: Whole, Half, Quarter, Eighth, Sixteenth\n- Tab number selection\n- Shamisen tuning metadata\n- BPM metadata\n- Measure count control\n- Horizontal zoom control\n- Left-hand technique markings\n- Right-hand technique markings\n- Oshibachi and Suberi above-note markings\n- Suri slide markings\n- Rest input\n- Lyric input under notes and rests\n- Section labels\n- One-measure simile repeat marks\n- Two-measure simile repeat marks\n- Smart erase mode\n- Selected-note editing\n- Undo and redo\n- Save and load local song files\n- Delete saved songs from the Load window\n- Save Copy song file support\n- Open File song file support\n- PNG export\n- PDF export\n- Open song library folder\n- Open export folder\n- Reveal last saved song file\n- Reveal last exported file\n- Keyboard shortcuts\n- Help dialog\n- About dialog\n- Autosave backup\n- Autosave recovery button\n- Unsaved changes status\n\nKnown Beta Limitations:\n- Windows desktop is the main testing platform right now.\n- Export layout may need improvement for long songs.\n- PDF export currently captures the visual sheet as displayed.\n- Mobile layout is not ready.\n- Save file format may change before stable release.\n- More shamisen notation symbols still need to be added.\n\nNext Planned Version: Beta 0.3\n\nPlanned improvements:\n- Cleaner toolbar organization\n- Better exported sheet layout\n- More notation symbols\n- Sample song files\n- Better beginner instructions\n- More testing feedback support",
+
+"sampleSong": "Sample Song",
+"tooltipSampleSong": "Load a built-in sample song for testing",
+"loadSampleSongTitle": "Load Sample Song",
+"loadSampleSongBody": "This will replace the current sheet with a built-in sample song. Unsaved changes should be saved first if you want to keep them.",
+"loadSampleSongButton": "Load Sample",
+"sampleSongTitle": "Sample Shamisen Piece",
+"statusLoadedSampleSong": "Loaded sample song. Use Save to keep a copy in your song library.",
+
+"keyboardShortcuts": "Shortcuts",
+"tooltipKeyboardShortcuts": "Show keyboard shortcuts",
+"keyboardShortcutsDialogTitle": "Keyboard Shortcuts",
+"keyboardShortcutsDialogBody": "File and Export\nCtrl+S: Save\nCtrl+N: New Song\nCtrl+O: Load Song\nCtrl+P: Export PDF\nCtrl+Shift+P: Export PNG\n\nEditing\nCtrl+Z: Undo\nCtrl+Y: Redo\nDelete: Delete selected note\nEsc: Clear current selection\n\nTools\nCtrl+1: Write mode\nCtrl+2: Erase mode\nCtrl+3: Suri mode\nCtrl+4: Rest mode\nCtrl+5: Repeat mode\nCtrl+6: Lyric mode\nCtrl+7: Section mode",
+
+"resetView": "Reset View",
+"tooltipResetView": "Reset zoom to 100% and return to the start of the sheet",
+"statusResetView": "View reset to 100% zoom and returned to the start of the sheet.",
+
+"clearRecentFiles": "Clear Recent",
+"clearRecentFilesTitle": "Clear Recent Files",
+"clearRecentFilesBody": "This will remove all entries from the Recent Files list. It will not delete any song files.",
+"statusClearedRecentFiles": "Cleared Recent Files list.",
+"statusNoRecentFilesToClear": "There are no recent files to clear.",
+
+"jumpToMeasure": "Jump",
+"tooltipJumpToMeasure": "Jump to a specific measure",
+"jumpToMeasureTitle": "Jump to Measure",
+"jumpToMeasureLabel": "Measure number",
+"jumpToMeasureHint": "Enter a measure number",
+"jumpToMeasureButton": "Jump",
+"statusJumpedToMeasure": "Jumped to measure {measureNumber}.",
+"statusInvalidMeasureNumber": "Enter a measure number from 1 to {totalMeasures}.",
+
+"renameSong": "Rename",
+"tooltipRenameSong": "Rename the current song and update its saved file",
+"renameSongTitle": "Rename Song",
+"renameSongLabel": "New song title",
+"renameSongHint": "Enter a new title",
+"renameSongButton": "Rename",
+"statusRenameCancelled": "Rename cancelled.",
+"statusRenameEmptyTitle": "Song title cannot be empty.",
+"statusRenamedSong": "Renamed song to \"{songTitle}\".",
+"statusRenameFailed": "Rename failed: {errorMessage}",
+
+"duplicateSong": "Duplicate",
+"tooltipDuplicateSong": "Create a new saved copy of the current song",
+"duplicateSongTitle": "Duplicate Song",
+"duplicateSongLabel": "Duplicate song title",
+"duplicateSongHint": "Enter a title for the copy",
+"duplicateSongButton": "Duplicate",
+"duplicateTitleSuffix": "Copy",
+"statusDuplicateCancelled": "Duplicate cancelled.",
+"statusDuplicateEmptyTitle": "Duplicate title cannot be empty.",
+"statusDuplicatedSong": "Created duplicate song \"{songTitle}\".",
+"statusDuplicateFailed": "Duplicate failed: {errorMessage}",
+
+"revertToSaved": "Revert",
+"tooltipRevertToSaved": "Reload the last saved version of the current song",
+"revertToSavedTitle": "Revert to Saved",
+"revertToSavedBody": "This will discard unsaved changes and reload the last saved version of the current song.",
+"revertToSavedButton": "Revert",
+"statusNoSavedVersionToRevert": "No saved library version is selected to revert to.",
+"statusSavedVersionMissing": "The saved song file no longer exists.",
+"statusRevertedToSaved": "Reverted to the last saved version.",
+"statusRevertCancelled": "Revert cancelled.",
+"statusRevertFailed": "Revert failed: {errorMessage}",
+
+"backups": "Backups",
+"tooltipBackupsFolder": "Open saved song backups folder",
+
+"restoreBackup": "Restore Backup",
+"tooltipRestoreBackup": "Restore a saved song backup",
+"restoreBackupTitle": "Restore Backup",
+"restoreBackupConfirmTitle": "Restore this backup?",
+"restoreBackupConfirmBody": "This will load the selected backup into the editor. It will not overwrite your current saved song until you press Save.",
+"restoreBackupButton": "Restore",
+"noSavedSongBackupsFound": "No saved song backups found.",
+"statusBackupFileMissing": "The selected backup file no longer exists.",
+"statusRestoreBackupCancelled": "Restore backup cancelled.",
+"statusRestoredBackup": "Restored backup. Review it, then use Save if you want to keep it.",
+"statusRestoreBackupFailed": "Restore backup failed: {errorMessage}"
 }
